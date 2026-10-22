@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/serverAuth";
 import { transcribeAudio } from "@/lib/whisper";
 
-export const maxDuration = 30;
+export const maxDuration = 90;
 
 const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
 

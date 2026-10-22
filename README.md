@@ -21,7 +21,7 @@ Create the private `doctor-documents` and `signatures` buckets and the public `a
 
 ## 2. Keys
 
-- **xAI API key** (clinical notes, visit summaries, prescription drafts): [console.x.ai](https://console.x.ai) → API Keys → `XAI_API_KEY`. Requests go to `https://api.x.ai/v1/chat/completions`. Optional `XAI_MODEL` overrides the default `grok-4.7`.
+- **xAI API key** (symptom intake, visit summaries, prescription drafts): [console.x.ai](https://console.x.ai) → API Keys → `XAI_API_KEY`. Requests go to `https://api.x.ai/v1/chat/completions`. Optional `XAI_MODEL` overrides the default `grok-4.7` used for visit summaries and prescription drafts. Optional `XAI_FAST_MODEL` overrides the default `grok-4.20-0309-non-reasoning` used for the studio intake chat. Those routes allow 90 seconds.
 - **Claude fallback** (optional): used only when `XAI_API_KEY` is unset and `ANTHROPIC_API_KEY` is set.
 - **Twilio Voice** (optional until someone places a call): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, and `NEXT_PUBLIC_APP_URL`.
 

@@ -24,6 +24,9 @@ export interface AiParams {
   content: AiContent;
   maxTokens?: number;
   tools?: AiTool[];
+  // Intake chat turns use the non-reasoning model. Final clinical analysis
+  // (visit summary, prescription draft) leaves this unset and stays on XAI_MODEL.
+  fast?: boolean;
 }
 
 export type StreamEvent = { type: "token"; text: string } | { type: "tool_start" } | { type: "done" };
@@ -33,6 +36,8 @@ export type AiProvider = "xai" | "anthropic";
 // Current flagship for code and chat on https://docs.x.ai/developers/models
 // (checked October 2026). Override with XAI_MODEL.
 export const DEFAULT_XAI_MODEL = "grok-4.7";
+// Non-reasoning model for interactive intake turns. Override with XAI_FAST_MODEL.
+export const DEFAULT_XAI_FAST_MODEL = "grok-4.20-0309-non-reasoning";
 export const XAI_CHAT_COMPLETIONS_URL = "https://api.x.ai/v1/chat/completions";
 
 const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
@@ -78,8 +83,11 @@ export function resolveProvider(): AiProvider {
   );
 }
 
-export function resolveModel(provider: AiProvider = resolveProvider()): string {
-  if (provider === "xai") return process.env.XAI_MODEL?.trim() || DEFAULT_XAI_MODEL;
+export function resolveModel(provider: AiProvider = resolveProvider(), options?: { fast?: boolean }): string {
+  if (provider === "xai") {
+    if (options?.fast) return process.env.XAI_FAST_MODEL?.trim() || DEFAULT_XAI_FAST_MODEL;
+    return process.env.XAI_MODEL?.trim() || DEFAULT_XAI_MODEL;
+  }
   return process.env.CLAUDE_MODEL?.trim() || DEFAULT_CLAUDE_MODEL;
 }
 
@@ -155,7 +163,7 @@ export function mapTools(tools?: AiTool[]): XaiRequestExtras {
 export function buildXaiRequest(params: AiParams, stream: boolean) {
   const extras = mapTools(params.tools);
   return {
-    model: resolveModel("xai"),
+    model: resolveModel("xai", { fast: params.fast }),
     max_completion_tokens: params.maxTokens ?? 4096,
     messages: toChatMessages(params.system, params.content),
     stream,

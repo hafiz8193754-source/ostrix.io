@@ -6,7 +6,7 @@ import { transcribeAudio } from "@/lib/whisper";
 import { createNotification } from "@/lib/notifications";
 import { getUserFromAccessToken } from "@/lib/serverAuth";
 
-export const maxDuration = 60;
+export const maxDuration = 90;
 
 function summarizeIntake(raw: unknown): string | null {
   if (!raw || typeof raw !== "object") return null;

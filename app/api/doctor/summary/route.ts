@@ -5,7 +5,7 @@ import { callEndSchema } from "@/lib/schemas";
 import { getConsultation } from "@/lib/clinical";
 import { generateVisitSummary } from "@/lib/clinicalAI";
 
-export const maxDuration = 30;
+export const maxDuration = 90;
 
 const summaryRequestSchema = callEndSchema.pick({ consultation_id: true }).extend({ doctor_notes: z.string().trim().min(1) });
 

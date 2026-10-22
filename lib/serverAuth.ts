@@ -267,7 +267,3 @@ export async function appendMessage(db: SupabaseClient, sessionId: string, role:
 export async function wipeUserData(db: SupabaseClient, userId: string): Promise<void> {
   await db.from("sessions").delete().eq("user_id", userId);
 }
-
-export async function insertWaitlistEmail(db: SupabaseClient, userId: string | null, email: string): Promise<void> {
-  await db.from("waitlist_signups").insert({ user_id: userId, email });
-}

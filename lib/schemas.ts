@@ -275,3 +275,26 @@ export const messageAppendSchema = z.object({
   content: z.record(z.string(), z.any()),
 });
 export type MessageAppendInput = z.infer<typeof messageAppendSchema>;
+
+// ---------- Payments (Bank Transfer only) ----------
+
+const optText = (max: number) => z.string().trim().max(max).optional().nullable().transform((v) => (v ? v : null));
+
+export const bankDetailsSchema = z.object({
+  bank_name: optText(100),
+  bank_account_title: optText(100),
+  bank_account_number: optText(50),
+  bank_iban: optText(34),
+  bank_instructions: optText(1000),
+});
+
+export const paymentSubmitSchema = z.object({
+  appointment_id: z.string().uuid(),
+  transfer_reference: z.string().trim().min(3, "Enter the transaction / reference number.").max(100),
+  receipt_path: z.string().trim().max(300).optional().nullable(),
+});
+
+export const paymentReviewSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+  note: z.string().trim().max(500).optional(),
+});

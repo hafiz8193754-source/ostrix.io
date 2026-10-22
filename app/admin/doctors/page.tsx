@@ -99,6 +99,7 @@ export default function AdminDoctorsPage() {
       <div className="flex items-center gap-2">
         <OstrixLogo size="sm" withWordmark />
         <span className="rounded-full border border-border bg-bg-elevated px-2.5 py-0.5 text-xs font-medium text-text-secondary">Admin</span>
+        <a href="/admin/payments" className="ml-auto text-xs font-medium text-accent">Payments →</a>
       </div>
 
       <div>

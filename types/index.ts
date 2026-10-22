@@ -340,6 +340,34 @@ export interface Appointment {
   ai_suggested_specialization: string | null;
   ai_symptom_analysis: Record<string, unknown>;
   session_id: string | null;
+  payment_status: PaymentStatus;
+  fee_pkr: number;
+  created_at: string;
+}
+
+export type PaymentStatus = "unpaid" | "pending" | "paid" | "rejected" | "not_required";
+
+// Bank Transfer is the only payment method. Editable from /admin/payments.
+export interface BankDetails {
+  bank_name: string | null;
+  bank_account_title: string | null;
+  bank_account_number: string | null;
+  bank_iban: string | null;
+  bank_instructions: string | null;
+}
+
+export interface Payment {
+  id: string;
+  appointment_id: string;
+  patient_id: string;
+  payer_user_id: string | null;
+  method: "bank_transfer";
+  amount_pkr: number;
+  transfer_reference: string;
+  receipt_path: string | null;
+  status: "pending" | "approved" | "rejected";
+  admin_note: string | null;
+  reviewed_at: string | null;
   created_at: string;
 }
 

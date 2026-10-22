@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { paymentGateError } from "@/lib/paymentGate";
 import { z } from "zod";
 import { requireVerifiedDoctor } from "@/lib/doctorGuard";
 import { getAppointmentWithParties, getOrCreateConsultation, logClinicalAudit, updateAppointmentStatus } from "@/lib/clinical";
@@ -22,6 +23,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "You are not the doctor for this appointment." }, { status: 403 });
   if (["cancelled", "no_show"].includes(parties.appointment.status))
     return NextResponse.json({ error: "This appointment was cancelled." }, { status: 400 });
+
+  const gate = paymentGateError(parties.appointment, "in_progress");
+  if (gate) return NextResponse.json({ error: gate.error, code: "payment_pending" }, { status: gate.status });
 
   const consultation = await getOrCreateConsultation(guard.db, parties.appointment.id, guard.doctor.id, parties.patient.id);
   if (!consultation) return NextResponse.json({ error: "Could not start the visit." }, { status: 500 });

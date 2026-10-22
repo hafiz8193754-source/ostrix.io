@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { paymentGateError } from "@/lib/paymentGate";
 import { getUserFromRequest } from "@/lib/serverAuth";
 import { callStartSchema } from "@/lib/schemas";
 import { getAppointmentWithParties, getOrCreateConsultation, saveConsultationCallSid, logClinicalAudit, updateAppointmentStatus } from "@/lib/clinical";
@@ -22,6 +23,9 @@ export async function POST(request: Request) {
 
   if (user.id !== parties.doctor.user_id && user.id !== parties.patient.user_id)
     return NextResponse.json({ error: "You're not part of this appointment." }, { status: 403 });
+
+  const gate = paymentGateError(parties.appointment, "in_progress");
+  if (gate) return NextResponse.json({ error: gate.error, code: "payment_pending" }, { status: gate.status });
 
   if (!parties.doctor.phone || !parties.patient.phone)
     return NextResponse.json({ error: "Missing a phone number for the doctor or patient." }, { status: 400 });

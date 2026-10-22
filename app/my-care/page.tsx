@@ -10,7 +10,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
 import { PrescriptionCard } from "@/components/doctor/PrescriptionCard";
 import { CLINICAL_DISCLAIMER } from "@/lib/clinicalSafety";
-import type { Appointment, Doctor, Patient, Prescription } from "@/types";
+import { BankTransferPanel } from "@/components/payments/BankTransferPanel";
+import type { Appointment, BankDetails, Doctor, Patient, Payment, Prescription } from "@/types";
 
 type Care = { patient: Patient | null; appointments: Appointment[]; prescriptions: Prescription[]; doctors: Doctor[] };
 
@@ -23,6 +24,13 @@ const STATUS_STYLE: Record<string, string> = {
   no_show: "bg-red-500/10 text-red-600",
 };
 
+const PAYMENT_LABEL: Record<string, [string, string]> = {
+  unpaid: ["Payment due", "bg-yellow-500/10 text-yellow-700"],
+  pending: ["Payment under review", "bg-blue-500/10 text-blue-600"],
+  paid: ["Paid", "bg-green-500/10 text-green-700"],
+  rejected: ["Payment rejected", "bg-red-500/10 text-red-600"],
+};
+
 // Patient-facing page: my appointments and my signed prescriptions (PDF download).
 export default function MyCarePage() {
   const router = useRouter();
@@ -30,6 +38,8 @@ export default function MyCarePage() {
   const [care, setCare] = useState<Care | null>(null);
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [bank, setBank] = useState<BankDetails | null>(null);
+  const [payments, setPayments] = useState<Payment[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -43,6 +53,12 @@ export default function MyCarePage() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) setError(data.error || "Could not load your care records.");
     else setCare(data as Care);
+    const [bankRes, payRes] = await Promise.all([
+      fetch("/api/payments/bank").then((r) => r.json()).catch(() => ({})),
+      fetch("/api/patient/payments", { headers: { authorization: `Bearer ${s.access_token}` } }).then((r) => r.json()).catch(() => ({})),
+    ]);
+    setBank(bankRes.bank || null);
+    setPayments(payRes.payments || []);
   }
 
   useEffect(() => {
@@ -90,8 +106,11 @@ export default function MyCarePage() {
               <div className="flex flex-col gap-2">
                 {care.appointments.map((a) => {
                   const d = doctorById(a.doctor_id);
+                  const pay = PAYMENT_LABEL[a.payment_status];
+                  const showPay = a.status !== "cancelled" && ["unpaid", "rejected", "pending"].includes(a.payment_status) && a.fee_pkr > 0;
                   return (
-                    <div key={a.id} data-testid="my-appointment" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-bg-surface px-4 py-3 text-sm">
+                    <div key={a.id} className="flex flex-col gap-2 rounded-lg border border-border bg-bg-surface px-4 py-3">
+                    <div data-testid="my-appointment" className="flex flex-wrap items-center justify-between gap-2 text-sm">
                       <div>
                         <p className="font-medium text-text-primary">{d ? `Dr. ${d.full_name.replace(/^dr\.?\s+/i, "")}` : "Doctor"}</p>
                         <p className="text-xs text-text-muted">
@@ -101,12 +120,24 @@ export default function MyCarePage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`rounded-full px-2 py-0.5 text-xs capitalize ${STATUS_STYLE[a.status] || ""}`}>{a.status.replace(/_/g, " ")}</span>
+                        {pay && a.fee_pkr > 0 && <span data-testid="payment-status" className={`rounded-full px-2 py-0.5 text-xs ${pay[1]}`}>{pay[0]}</span>}
                         {(a.status === "pending" || a.status === "confirmed") && (
                           <button onClick={() => cancel(a.id)} disabled={cancelling === a.id} className="text-xs font-medium text-red-600 disabled:opacity-50">
                             Cancel
                           </button>
                         )}
                       </div>
+                    </div>
+                    {showPay && session && (
+                      <BankTransferPanel
+                        appointment={a}
+                        bank={bank}
+                        lastPayment={payments.find((p) => p.appointment_id === a.id) || null}
+                        accessToken={session.access_token}
+                        userId={session.user.id}
+                        onSubmitted={() => load(session)}
+                      />
+                    )}
                     </div>
                   );
                 })}

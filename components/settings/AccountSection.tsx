@@ -152,7 +152,7 @@ export function AccountSection({ accessToken, userEmail, profile, onSave }: Acco
           </button>
         ) : (
           <div className="flex flex-col gap-2 rounded-md border border-red-500/40 bg-red-500/5 p-3">
-            <p className="text-xs text-text-secondary">This permanently deletes your account and all data. Type DELETE to confirm.</p>
+            <p className="text-xs text-text-secondary">This permanently deletes your account, chats and files. Medical records (visits, prescriptions, payments) are kept anonymized, with your name and contact details removed. Type DELETE to confirm.</p>
             <input
               value={deleteConfirm}
               onChange={(e) => setDeleteConfirm(e.target.value)}

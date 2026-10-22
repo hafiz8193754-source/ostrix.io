@@ -53,6 +53,17 @@ export function AppointmentConfirmation({ appointment, confirmationMessage, doct
         <p className="text-xs text-text-muted">{appointment.type === "online" ? "Online consultation" : "Walk-in visit"}</p>
       </div>
 
+      {appointment.fee_pkr > 0 && status !== "cancelled" && (
+        <a
+          href="/my-care"
+          data-testid="pay-bank-transfer"
+          className="flex items-center justify-between rounded-xl border border-border bg-bg-surface p-3.5 text-sm hover:border-accent"
+        >
+          <span className="text-text-primary">Pay PKR {appointment.fee_pkr.toLocaleString()} by bank transfer</span>
+          <span className="text-xs font-medium text-accent">Pay now →</span>
+        </a>
+      )}
+
       <div className="rounded-xl border border-border bg-bg-elevated p-3.5">
         <div className="mb-2 flex items-center gap-2">
           <button

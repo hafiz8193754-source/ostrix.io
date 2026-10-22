@@ -53,7 +53,10 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     appointment,
-    confirmation_message: `Booked with Dr. ${doctor.full_name} on ${date} at ${time}. The clinic will confirm via WhatsApp/phone shortly.`,
+    confirmation_message:
+      appointment.fee_pkr > 0
+        ? `Booked with Dr. ${doctor.full_name} on ${date} at ${time}. Please pay the PKR ${appointment.fee_pkr.toLocaleString()} fee by bank transfer from My care — your booking is confirmed once the transfer is verified.`
+        : `Booked with Dr. ${doctor.full_name} on ${date} at ${time}. The clinic will confirm via WhatsApp/phone shortly.`,
   });
 }
 

@@ -64,7 +64,7 @@ export async function POST(request: Request) {
             "prescription_ready",
             "Your prescription is ready",
             `Dr. ${doctor.full_name} has approved your prescription.`,
-            "/studio"
+            "/my-care"
           );
 
           const consultation = await getConsultation(db, prescription.consultation_id);

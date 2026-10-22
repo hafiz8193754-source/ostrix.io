@@ -13,6 +13,6 @@ export async function GET(request: Request) {
   const doctor = await getDoctorByUserId(db, user.id);
   if (!doctor) return NextResponse.json({ doctor: null });
 
-  const { todaysAppointments, pendingPrescriptions, recentConsultations } = await getDashboardData(db, doctor.id);
-  return NextResponse.json({ doctor, todaysAppointments, pendingPrescriptions, recentConsultations });
+  const { todaysAppointments, upcomingAppointments, pendingPrescriptions, recentConsultations } = await getDashboardData(db, doctor.id);
+  return NextResponse.json({ doctor, todaysAppointments, upcomingAppointments, pendingPrescriptions, recentConsultations });
 }

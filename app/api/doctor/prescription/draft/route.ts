@@ -4,7 +4,7 @@ import { prescriptionDraftSchema } from "@/lib/schemas";
 import { getConsultation, getPatientById, savePrescriptionDraft, logClinicalAudit } from "@/lib/clinical";
 import { generatePrescriptionDraft } from "@/lib/clinicalAI";
 
-export const maxDuration = 90;
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
   const guard = await requireVerifiedDoctor(request);

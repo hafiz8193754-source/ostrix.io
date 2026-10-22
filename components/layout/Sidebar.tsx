@@ -208,6 +208,18 @@ export function Sidebar({
           </Avatar>
           <span className="min-w-0 flex-1 truncate text-sm text-text-secondary">{name}</span>
         </div>
+        <a
+          href="/my-care"
+          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary"
+        >
+          <Stethoscope className="h-4 w-4" /> My care
+        </a>
+        <a
+          href="/doctor/dashboard"
+          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary"
+        >
+          <Stethoscope className="h-4 w-4" /> For doctors
+        </a>
         <button
           onClick={onOpenSettings}
           className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary"

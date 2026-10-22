@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/serverAuth";
 import { callStartSchema } from "@/lib/schemas";
-import { getAppointmentWithParties, createConsultation, saveConsultationCallSid, logClinicalAudit, updateAppointmentStatus } from "@/lib/clinical";
+import { getAppointmentWithParties, getOrCreateConsultation, saveConsultationCallSid, logClinicalAudit, updateAppointmentStatus } from "@/lib/clinical";
 import { twilioClient, twilioConfigured } from "@/lib/twilio";
 
 // Real Twilio Voice conference bridge — replaces the earlier stub. Places
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       { status: 503 }
     );
 
-  const consultation = await createConsultation(db, parties.appointment.id, parties.doctor.id, parties.patient.id);
+  const consultation = await getOrCreateConsultation(db, parties.appointment.id, parties.doctor.id, parties.patient.id);
   if (!consultation) return NextResponse.json({ error: "Could not start the consultation." }, { status: 500 });
 
   const consultationId = consultation.id;
@@ -41,7 +41,6 @@ export async function POST(request: Request) {
   const client = twilioClient();
   const from = process.env.TWILIO_PHONE_NUMBER as string;
   const accessToken = auth.token;
-  await updateAppointmentStatus(db, parties.appointment.id, "in_progress");
 
   function withSession(path: string, extra: Record<string, string> = {}) {
     const u = new URL(`${appUrl}${path}`);
@@ -71,11 +70,18 @@ export async function POST(request: Request) {
       statusCallbackEvent: ["completed"],
     });
 
+    await updateAppointmentStatus(db, parties.appointment.id, "in_progress");
     await saveConsultationCallSid(db, consultation.id, doctorCall.sid);
     await logClinicalAudit(db, consultation.id, null, "system", "call_initiated", { conferenceName, callSid: doctorCall.sid });
 
     return NextResponse.json({ consultation_id: consultation.id, status: "calling" });
   } catch (e) {
-    return NextResponse.json({ error: `Could not place the call: ${(e as Error).message}` }, { status: 502 });
+    return NextResponse.json(
+      {
+        error: `Phone call could not be placed (${(e as Error).message}). You can still run the visit with "Start visit" and write a prescription.`,
+        consultation_id: consultation.id,
+      },
+      { status: 502 }
+    );
   }
 }

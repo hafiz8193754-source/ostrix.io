@@ -10,10 +10,19 @@ import { PrescriptionReviewPanel } from "@/components/doctor/PrescriptionReviewP
 import { PresenceWidget } from "@/components/doctor/PresenceWidget";
 import { ScheduleManager } from "@/components/doctor/ScheduleManager";
 import { TodaySlotsTimeline } from "@/components/doctor/TodaySlotsTimeline";
+import { VisitPanel } from "@/components/doctor/VisitPanel";
 import { useDoctorPresence } from "@/hooks/useDoctorPresence";
 import { CLINICAL_DISCLAIMER } from "@/lib/clinicalSafety";
-import { AlertTriangle, Ban, Clock, HelpCircle, Loader2, PhoneCall, ShieldCheck, Stethoscope } from "lucide-react";
+import { AlertTriangle, Ban, Clock, HelpCircle, Loader2, PhoneCall, Play, ShieldCheck, Stethoscope } from "lucide-react";
 import type { Appointment, Doctor, Prescription } from "@/types";
+
+type UpcomingAppointment = Appointment & {
+  patient_name: string | null;
+  patient_phone: string | null;
+  patient_age: number | null;
+  patient_gender: string | null;
+  open_consultation_id: string | null;
+};
 
 const EXPIRY_WARNING_DAYS = 60;
 
@@ -86,6 +95,10 @@ export default function DoctorDashboard() {
   const [callingId, setCallingId] = useState<string | null>(null);
   const [calledId, setCalledId] = useState<string | null>(null);
   const [callError, setCallError] = useState("");
+  const [upcoming, setUpcoming] = useState<UpcomingAppointment[]>([]);
+  const [visit, setVisit] = useState<{ appointment: UpcomingAppointment; consultationId: string } | null>(null);
+  const [startingId, setStartingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
 
   useDoctorPresence(doctor ? session : null);
 
@@ -103,7 +116,9 @@ export default function DoctorDashboard() {
     const data = await res.json();
     setDoctor(data.doctor);
     setAppointments(data.todaysAppointments || []);
+    setUpcoming(data.upcomingAppointments || []);
     setPending(data.pendingPrescriptions || []);
+    return data as { pendingPrescriptions?: Prescription[] };
   }, [session]);
 
   useEffect(() => {
@@ -118,6 +133,27 @@ export default function DoctorDashboard() {
       body: JSON.stringify({ appointment_id: appointmentId, status }),
     });
     if (res.ok) await load();
+  }
+
+  async function startVisit(a: UpcomingAppointment) {
+    if (!session) return;
+    setStartingId(a.id);
+    setCallError("");
+    try {
+      const res = await fetch("/api/doctor/consultation", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ appointment_id: a.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not start the visit.");
+      setVisit({ appointment: a, consultationId: data.consultation_id });
+      await load();
+    } catch (e) {
+      setCallError((e as Error).message);
+    } finally {
+      setStartingId(null);
+    }
   }
 
   async function startCall(appointmentId: string) {
@@ -158,7 +194,7 @@ export default function DoctorDashboard() {
   const isVerified = doctor.registration_status === "verified";
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 px-6 py-10">
+    <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 overflow-x-hidden px-4 py-8 sm:px-6 sm:py-10">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <OstrixLogo size="sm" withWordmark />
@@ -178,45 +214,82 @@ export default function DoctorDashboard() {
 
       <section>
         <h2 className="mb-2 flex items-center gap-1.5 font-display text-lg font-bold text-text-primary">
-          <Clock className="h-4 w-4" /> Today's appointments
+          <Clock className="h-4 w-4" /> Upcoming appointments ({upcoming.length})
         </h2>
-        {appointments.length === 0 ? (
-          <p className="text-sm text-text-muted">No appointments today.</p>
+        {notice && <p className="mb-2 rounded-lg bg-accent/10 px-3 py-2 text-xs text-text-primary">{notice}</p>}
+        {upcoming.length === 0 ? (
+          <p className="text-sm text-text-muted">No upcoming appointments.</p>
         ) : (
           <div className="flex flex-col gap-2">
-            {appointments.map((a) => (
-              <div key={a.id} className="flex items-center justify-between rounded-lg border border-border bg-bg-surface px-4 py-2.5 text-sm">
-                <span className="text-text-primary">
-                  {a.appointment_time.slice(0, 5)} · {a.type === "online" ? "Online" : "Walk-in"}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-bg-elevated px-2 py-0.5 text-xs capitalize text-text-secondary">{a.status.replace(/_/g, " ")}</span>
-                  {isVerified && a.status !== "completed" && a.status !== "cancelled" && (
-                    <>
-                      {a.status === "pending" && (
-                        <button onClick={() => setAppointmentStatus(a.id, "confirmed")} className="text-xs font-medium text-accent">
-                          Confirm
+            {upcoming.map((a) => (
+              <div key={a.id} data-testid="appointment-row" className="rounded-lg border border-border bg-bg-surface px-4 py-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium text-text-primary">
+                      {a.patient_name || "Patient"}
+                      {a.patient_age ? ` · ${a.patient_age}y` : ""}
+                      {a.patient_gender ? ` · ${a.patient_gender}` : ""}
+                    </p>
+                    <p className="text-xs text-text-muted">
+                      {a.appointment_date} · {a.appointment_time.slice(0, 5)} · {a.type === "online" ? "Online" : "Walk-in"}
+                      {a.patient_phone ? ` · ${a.patient_phone}` : ""}
+                    </p>
+                    {a.symptoms_description && <p className="mt-1 line-clamp-2 text-xs text-text-secondary">{a.symptoms_description}</p>}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-bg-elevated px-2 py-0.5 text-xs capitalize text-text-secondary">{a.status.replace(/_/g, " ")}</span>
+                    {isVerified && (
+                      <>
+                        {a.status === "pending" && (
+                          <button onClick={() => setAppointmentStatus(a.id, "confirmed")} className="text-xs font-medium text-accent">
+                            Confirm
+                          </button>
+                        )}
+                        <button
+                          onClick={() => startVisit(a)}
+                          disabled={startingId === a.id}
+                          className="flex items-center gap-1 rounded-full border border-accent px-2.5 py-0.5 text-xs font-medium text-accent disabled:opacity-60"
+                        >
+                          {startingId === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                          {a.status === "in_progress" ? "Continue visit" : "Start visit"}
                         </button>
-                      )}
-                      <button onClick={() => setAppointmentStatus(a.id, "completed")} className="text-xs font-medium text-text-secondary">
-                        Complete
-                      </button>
-                      <button onClick={() => setAppointmentStatus(a.id, "cancelled")} className="text-xs font-medium text-red-600">
-                        Cancel
-                      </button>
-                    </>
-                  )}
-                  {a.type === "online" && a.status !== "completed" && a.status !== "cancelled" && (
-                    <button
-                      onClick={() => startCall(a.id)}
-                      disabled={callingId === a.id || calledId === a.id}
-                      className="flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-black disabled:opacity-60"
-                    >
-                      {callingId === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <PhoneCall className="h-3 w-3" />}
-                      {calledId === a.id ? "Calling…" : "Call"}
-                    </button>
-                  )}
+                        {a.type === "online" && (
+                          <button
+                            onClick={() => startCall(a.id)}
+                            disabled={callingId === a.id || calledId === a.id}
+                            className="flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-black disabled:opacity-60"
+                          >
+                            {callingId === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <PhoneCall className="h-3 w-3" />}
+                            {calledId === a.id ? "Calling…" : "Call"}
+                          </button>
+                        )}
+                        <button onClick={() => setAppointmentStatus(a.id, "completed")} className="text-xs font-medium text-text-secondary">
+                          Complete
+                        </button>
+                        <button onClick={() => setAppointmentStatus(a.id, "cancelled")} className="text-xs font-medium text-red-600">
+                          Cancel
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
+                {visit?.appointment.id === a.id && session && (
+                  <VisitPanel
+                    consultationId={visit.consultationId}
+                    accessToken={session.access_token}
+                    patientLabel={a.patient_name || "Patient"}
+                    symptoms={a.symptoms_description}
+                    onClose={() => setVisit(null)}
+                    onDrafted={async (prescriptionId) => {
+                      setVisit(null);
+                      await setAppointmentStatus(a.id, "completed");
+                      const data = await load();
+                      const drafted = (data?.pendingPrescriptions || []).find((p) => p.id === prescriptionId);
+                      if (drafted) setSelected(drafted);
+                      setNotice("Visit completed. Review, edit and sign the prescription below.");
+                    }}
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -269,7 +342,7 @@ export default function DoctorDashboard() {
         {selected && !isVerified && <p className="mt-4 text-sm text-yellow-700">Verification is required before you can review and sign this draft.</p>}
       </section>
 
-      <section>
+      <section className="min-w-0">
         <h2 className="mb-2 font-display text-lg font-bold text-text-primary">Weekly schedule</h2>
         <ScheduleManager accessToken={session!.access_token} />
       </section>

@@ -70,7 +70,7 @@ const prescriptionDataSchema = z.object({
       duration: z.string(),
       route: z.string(),
       instructions: z.string(),
-      quantity: z.coerce.number(),
+      quantity: z.preprocess((v) => { if (typeof v === "number" && Number.isFinite(v)) return v; const m = String(v ?? "").match(/\d+(\.\d+)?/); return m ? Number(m[0]) : 1; }, z.number().nonnegative()),
       warnings: z.array(z.string()).default([]),
     })
   ),

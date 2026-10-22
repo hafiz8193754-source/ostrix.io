@@ -1,6 +1,6 @@
 import { getUserFromRequest } from "@/lib/serverAuth";
 import { promptEngineerChatSchema } from "@/lib/schemas";
-import { streamClaude, type ClaudeContent, type DocumentBlock, type ImageBlock, type TextBlock } from "@/lib/anthropic";
+import { streamComplete, type AiContent, type DocumentBlock, type ImageBlock, type TextBlock } from "@/lib/ai";
 import { scrapeUrl } from "@/lib/urlScrape";
 
 export const maxDuration = 90;
@@ -173,11 +173,11 @@ export async function POST(request: Request) {
 
       blocks.push({ type: "text", text: conversationText ? `${conversationText}\n\nUser: ${userTurn}` : `User: ${userTurn}` });
 
-      const content: ClaudeContent = blocks;
+      const content: AiContent = blocks;
 
       send("status", { message: "Thinking…" });
       try {
-        const full = await streamClaude({ system: SYSTEM, content, maxTokens: 6000 }, (event) => {
+        const full = await streamComplete({ system: SYSTEM, content, maxTokens: 6000 }, (event) => {
           if (event.type === "token") send("token", { text: event.text });
         });
         send("done", { text: full });

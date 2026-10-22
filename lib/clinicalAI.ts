@@ -2,7 +2,7 @@
 // lib/clinical.ts (pure DB access) and out of individual route.ts files
 // (which should only export HTTP handlers) so summary/prescription generation
 // logic isn't duplicated or cross-imported between route modules.
-import { claude, extractJson } from "@/lib/anthropic";
+import { complete, extractJson } from "@/lib/ai";
 import { saveVisitSummary, logClinicalAudit } from "@/lib/clinical";
 import type { PrescriptionData } from "@/types";
 
@@ -21,7 +21,7 @@ Return ONLY valid JSON:
 }`;
 
 export async function generateVisitSummary(consultationId: string, doctorNotes: string): Promise<unknown> {
-  const raw = await claude({ system: SUMMARY_SYSTEM, content: doctorNotes, maxTokens: 1200 });
+  const raw = await complete({ system: SUMMARY_SYSTEM, content: doctorNotes, maxTokens: 1200 });
   const summary = extractJson(raw);
   await saveVisitSummary(consultationId, JSON.stringify(summary));
   await logClinicalAudit(consultationId, null, "ai", "visit_summary_generated", {});
@@ -83,7 +83,7 @@ export async function generatePrescriptionDraft(ctx: DraftContext): Promise<Pres
     .filter(Boolean)
     .join("\n");
 
-  const raw = await claude({
+  const raw = await complete({
     system: PRESCRIPTION_SYSTEM,
     content,
     maxTokens: 2000,

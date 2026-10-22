@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { streamClaude } from "@/lib/anthropic";
+import { streamComplete } from "@/lib/ai";
 import { getUserFromRequest } from "@/lib/serverAuth";
 import { refineSchema } from "@/lib/schemas";
 import { parseFiles, mergeFiles } from "@/lib/siteFiles";
@@ -50,7 +50,7 @@ ${serializeFiles(currentFiles)}
       try {
         send("status", { message: "Reading your current site…" });
         const parser = new ProjectStreamParser();
-        const raw = await streamClaude({ system, content, maxTokens: 12000 }, (event) => {
+        const raw = await streamComplete({ system, content, maxTokens: 12000 }, (event) => {
           if (event.type !== "token") return;
           for (const evt of parser.feed(event.text)) {
             if (evt.type === "file-start") {

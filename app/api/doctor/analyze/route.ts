@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { claude, extractJson } from "@/lib/anthropic";
+import { complete, extractJson } from "@/lib/ai";
 import { getUserFromRequest } from "@/lib/serverAuth";
 import { symptomAnalysisSchema } from "@/lib/schemas";
 import { detectEmergency, firstAidFor, EMERGENCY_HOSPITALS, CLINICAL_DISCLAIMER } from "@/lib/clinicalSafety";
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const raw = await claude({ system: SYSTEM, content: symptoms, maxTokens: 1200 });
+    const raw = await complete({ system: SYSTEM, content: symptoms, maxTokens: 1200 });
     const parsedAnalysis = extractJson<{
       specialization: string;
       urgency: Urgency;

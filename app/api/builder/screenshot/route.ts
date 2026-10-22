@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { claude, streamClaude, extractJson } from "@/lib/anthropic";
+import { complete, streamComplete, extractJson } from "@/lib/ai";
 import { getUserFromRequest, checkQuota, recordGeneration } from "@/lib/serverAuth";
 import { screenshotBuildSchema } from "@/lib/schemas";
 import { parseProject } from "@/lib/siteFiles";
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       try {
         // Step 1: analyze the screenshot (fast, single call — not worth streaming).
         send("status", { message: "Analyzing your screenshot…" });
-        const analysisRaw = await claude({
+        const analysisRaw = await complete({
           system: ANALYSIS_SYSTEM,
           content: [
             { type: "image", source: { type: "base64", media_type: screenshot.type, data: screenshot.data } },
@@ -104,7 +104,7 @@ Rebuild this website faithfully but improved. Generate all files now.`;
 
         send("status", { message: "Planning structure…" });
         const parser = new ProjectStreamParser();
-        const raw = await streamClaude(
+        const raw = await streamComplete(
           {
             system: REBUILD_SYSTEM,
             content: [

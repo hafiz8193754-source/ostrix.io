@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { NextResponse } from "next/server";
-import { claude, streamClaude, type ClaudeContent } from "@/lib/anthropic";
+import { complete, streamComplete, type AiContent } from "@/lib/ai";
 import { getUserFromRequest, checkQuota, recordGeneration } from "@/lib/serverAuth";
 import { builderBriefSchema } from "@/lib/schemas";
 import { parseProject } from "@/lib/siteFiles";
@@ -137,7 +137,7 @@ Keep all existing class names identical. Return ONLY the improved CSS, nothing e
 // brief instead of guessing a business category from scratch.
 async function classifyBrief(brief: string) {
   try {
-    const word = await claude({
+    const word = await complete({
       system: "Reply with exactly one word from: restaurant, portfolio, service, ecommerce, tech, health",
       content: brief,
       maxTokens: 10,
@@ -153,7 +153,7 @@ async function classifyBrief(brief: string) {
 // a refinement hiccup never breaks the whole generation.
 async function refineCss(css: string): Promise<string> {
   try {
-    const raw = await claude({ system: CSS_REVIEWER_SYSTEM, content: css, maxTokens: 12000 });
+    const raw = await complete({ system: CSS_REVIEWER_SYSTEM, content: css, maxTokens: 12000 });
     const cleaned = raw.replace(/```[a-z]*\n?|```/gi, "").trim();
     return cleaned || css;
   } catch {
@@ -206,7 +206,7 @@ Palette: primary ${ds.primaryColor}, secondary ${ds.secondaryColor}, accent ${ds
 Hero style: ${ds.heroStyle}. Animation feel: ${ds.animationStyle}.
 Suggested section order: ${ds.sectionOrder.join(" → ")}.`;
 
-        const content: ClaudeContent = screenshot?.data
+        const content: AiContent = screenshot?.data
           ? [
               { type: "image", source: { type: "base64", media_type: screenshot.type || "image/png", data: screenshot.data } },
               { type: "text", text: enrichedBrief },
@@ -214,7 +214,7 @@ Suggested section order: ${ds.sectionOrder.join(" → ")}.`;
           : enrichedBrief;
 
         const parser = new ProjectStreamParser();
-        const raw = await streamClaude({ system: FINAL_SYSTEM, content, maxTokens: 64000 }, (event) => {
+        const raw = await streamComplete({ system: FINAL_SYSTEM, content, maxTokens: 64000 }, (event) => {
           if (event.type !== "token") return;
           for (const evt of parser.feed(event.text)) {
             if (evt.type === "file-start") {

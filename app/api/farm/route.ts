@@ -1,4 +1,4 @@
-import { streamClaude, extractJson } from "@/lib/anthropic";
+import { streamComplete, extractJson } from "@/lib/ai";
 import { getUserFromRequest, checkQuota, recordGeneration } from "@/lib/serverAuth";
 import { farmIntakeSchema } from "@/lib/schemas";
 import type { FarmPlan } from "@/types";
@@ -113,7 +113,7 @@ Current problem: ${problem || "none reported"}`;
       let sawTool = false;
 
       try {
-        const raw = await streamClaude(
+        const raw = await streamComplete(
           { system: SYSTEM, content, maxTokens: 3000, tools: [{ type: "web_search_20250305", name: "web_search" }] },
           (event) => {
             if (event.type === "tool_start" && !sawTool) {

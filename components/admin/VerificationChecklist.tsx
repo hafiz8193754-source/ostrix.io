@@ -1,4 +1,4 @@
-import { VERIFICATION_CHECKLIST_ITEMS } from "@/lib/clinical";
+import { VERIFICATION_CHECKLIST_ITEMS } from "@/lib/verificationChecklist";
 
 interface VerificationChecklistProps {
   checked: string[];

@@ -1,16 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
-
 import type { Notification } from "@/types";
-
-// Server-only Supabase client (service role) — same per-file convention as
-// lib/serverAuth.ts / lib/clinical.ts.
-function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
-    process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder",
-    { auth: { persistSession: false } }
-  );
-}
+import { createUserClient, currentUserId, dataClient, hasServiceRoleKey, requestAuthToken, ServerNotConfiguredError } from "@/lib/serverAuth";
 
 // In-app only — no email/SMS/push. Fired on: registration submitted,
 // verification approved/rejected/suspended, more-info requested, PMDC expiry
@@ -22,12 +11,21 @@ export async function createNotification(
   body?: string,
   link?: string
 ): Promise<void> {
-  const admin = adminClient();
-  await admin.from("notifications").insert({ user_id: userId, type, title, body: body || null, link: link || null });
+  const row = { user_id: userId, type, title, body: body || null, link: link || null };
+  // Notifying somebody else bypasses RLS and needs the service role.
+  // A user inserting their own row is allowed by "Own notifications".
+  if (hasServiceRoleKey()) {
+    await dataClient().from("notifications").insert(row);
+    return;
+  }
+  const caller = currentUserId();
+  const token = requestAuthToken();
+  if (!caller || caller !== userId || !token) throw new ServerNotConfiguredError();
+  await createUserClient(token).from("notifications").insert(row);
 }
 
 export async function listNotifications(userId: string, limit = 30): Promise<Notification[]> {
-  const admin = adminClient();
+  const admin = dataClient();
   const { data, error } = await admin
     .from("notifications")
     .select("*")
@@ -39,7 +37,7 @@ export async function listNotifications(userId: string, limit = 30): Promise<Not
 }
 
 export async function countUnreadNotifications(userId: string): Promise<number> {
-  const admin = adminClient();
+  const admin = dataClient();
   const { count, error } = await admin
     .from("notifications")
     .select("id", { count: "exact", head: true })
@@ -50,7 +48,7 @@ export async function countUnreadNotifications(userId: string): Promise<number> 
 }
 
 export async function markNotificationsRead(userId: string, ids?: string[]): Promise<void> {
-  const admin = adminClient();
+  const admin = dataClient();
   let query = admin.from("notifications").update({ is_read: true }).eq("user_id", userId);
   if (ids && ids.length) query = query.in("id", ids);
   await query;

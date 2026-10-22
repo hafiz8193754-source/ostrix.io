@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/serverAuth";
+import { adminConfigGate, getUserFromRequest } from "@/lib/serverAuth";
 import { heartbeatSchema } from "@/lib/schemas";
 import { getDoctorByUserId, recordHeartbeat } from "@/lib/clinical";
 
@@ -7,10 +7,10 @@ import { getDoctorByUserId, recordHeartbeat } from "@/lib/clinical";
 // unverified doctor is still offline/unbookable regardless of what this
 // route does (lib/presence.ts's pmdc_verified gate is absolute).
 export async function POST(request: Request) {
-  const user = await getUserFromRequest(request);
-  if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const gate = adminConfigGate(await getUserFromRequest(request));
+  if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status });
 
-  const doctor = await getDoctorByUserId(user.id);
+  const doctor = await getDoctorByUserId(gate.user.id);
   if (!doctor) return NextResponse.json({ error: "No doctor profile found for this account." }, { status: 404 });
 
   const body = await request.json().catch(() => ({}));

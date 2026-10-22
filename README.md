@@ -66,6 +66,7 @@ Create an account on the login page, then try both agents in the studio.
 ## Security notes
 
 - `XAI_API_KEY`, `ANTHROPIC_API_KEY` (fallback only), `SUPABASE_SERVICE_ROLE_KEY`, `VERCEL_TOKEN`, and `GITHUB_TOKEN` are **server-only**: they are read inside API routes and never sent to the browser.
+- Signed-in routes verify the session with the anon key. `SUPABASE_SERVICE_ROLE_KEY` is optional for those routes (the database then enforces RLS). It is required for account deletion, admin doctor review, doctor presence, and notifications sent to another user — those return `503 Server not fully configured` when the key is missing.
 - Every agent route verifies the user's Supabase session token and enforces per-day quotas before spending any API credit.
 - Never commit `.env.local` (it's already in `.gitignore`).
 

@@ -1,15 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
-
 import type { Profile, ProfileSettings } from "@/types";
+import { dataClient } from "@/lib/serverAuth";
 
-// Server-only Supabase client (service role) — same per-file convention as
-// lib/serverAuth.ts / lib/clinical.ts / lib/notifications.ts.
 function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
-    process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder",
-    { auth: { persistSession: false } }
-  );
+  return dataClient();
 }
 
 export async function getOrCreateProfile(userId: string): Promise<Profile> {

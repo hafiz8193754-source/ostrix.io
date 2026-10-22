@@ -2,19 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, MoreVertical, Pencil, Trash2, Check, X, Sparkles, Globe, Sprout, Stethoscope, Settings as SettingsIcon } from "lucide-react";
+import { Plus, MoreVertical, Pencil, Trash2, Check, X, Stethoscope, Settings as SettingsIcon } from "lucide-react";
 
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { AgentMode, Session } from "@/types";
+import type { Session } from "@/types";
 
 interface SidebarProps {
   open: boolean;
-  mode: AgentMode;
-  onModeChange: (mode: AgentMode) => void;
   sessions: Session[];
   activeSessionId: string | null;
   userEmail: string;
@@ -26,20 +24,6 @@ interface SidebarProps {
   onDeleteSession: (id: string) => void;
   onOpenSettings: () => void;
 }
-
-const AGENTS: { mode: AgentMode; label: string; icon: typeof Sparkles }[] = [
-  { mode: "prompt_engineer", label: "Prompt Engineer", icon: Sparkles },
-  { mode: "builder", label: "Website Builder", icon: Globe },
-  { mode: "farm", label: "Farming Advisor", icon: Sprout },
-  { mode: "doctor", label: "Assistant Doctor", icon: Stethoscope },
-];
-
-const AGENT_META: Record<AgentMode, { icon: typeof Sparkles; label: string }> = {
-  prompt_engineer: { icon: Sparkles, label: "Prompt Engineer" },
-  builder: { icon: Globe, label: "Website Builder" },
-  farm: { icon: Sprout, label: "Farming Advisor" },
-  doctor: { icon: Stethoscope, label: "Assistant Doctor" },
-};
 
 function initials(name: string) {
   return name.trim().slice(0, 2).toUpperCase();
@@ -70,8 +54,6 @@ function groupSessions(sessions: Session[]) {
 
 export function Sidebar({
   open,
-  mode,
-  onModeChange,
   sessions,
   activeSessionId,
   userEmail,
@@ -129,24 +111,10 @@ export function Sidebar({
           <OstrixLogo size="sm" />
         </div>
         <Button onClick={onNewChat} className="w-full justify-center">
-          <Plus className="h-4 w-4" /> New Chat
+          <Plus className="h-4 w-4" /> New visit
         </Button>
-
-        {/* The only agent switcher in the app — Composer no longer has a
-            mode-pill row, matching how New Chat now only lives here too. */}
-        <div className="flex flex-col gap-1">
-          {AGENTS.map((a) => (
-            <button
-              key={a.mode}
-              onClick={() => onModeChange(a.mode)}
-              className={cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                mode === a.mode ? "bg-accent-glow text-accent" : "text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
-              )}
-            >
-              <a.icon className="h-4 w-4" /> {a.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2.5 rounded-lg bg-accent-glow px-3 py-2 text-sm font-medium text-accent">
+          <Stethoscope className="h-4 w-4" /> Assistant Doctor
         </div>
       </div>
 
@@ -157,7 +125,7 @@ export function Sidebar({
               {group.label}
             </div>
             {group.items.map((s) => {
-              const AgentIcon = AGENT_META[s.agent]?.icon || Sparkles;
+              const AgentIcon = Stethoscope;
               return (
                 <div
                   key={s.id}
@@ -187,7 +155,7 @@ export function Sidebar({
                     </>
                   ) : (
                     <>
-                      <AgentIcon className="h-3.5 w-3.5 shrink-0 text-text-muted" aria-label={AGENT_META[s.agent]?.label} />
+                      <AgentIcon className="h-3.5 w-3.5 shrink-0 text-text-muted" aria-label="Assistant Doctor" />
                       <button onClick={() => onSelectSession(s.id)} className="min-w-0 flex-1 truncate text-left">
                         {s.title}
                       </button>

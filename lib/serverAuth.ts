@@ -1,15 +1,14 @@
-import { AsyncLocalStorage } from "async_hooks";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 
-import type { AgentMode, ChatMessage, QuotaResult, Session, UsageStats } from "@/types";
+import type { AgentMode, ChatMessage, Session } from "@/types";
 
 // User routes authenticate with the anon key and the caller's session.
-// The service-role key is optional: when it is set, database calls keep using
-// it (RLS bypass, same as before). When it is missing, those calls use the
-// anon key plus the user's Authorization header so RLS applies.
-// Admin-only work (account deletion, doctor admin, cross-user notifications,
-// presence sweeps) refuses with ServerNotConfiguredError instead of pretending
-// the caller is signed out.
+// getUserFromRequest returns an explicit per-request client: the service-role
+// client when that key is set, otherwise the anon key plus the user's
+// Authorization header. Callers pass `db` into every query. There is no
+// ambient request storage.
+// Account deletion, admin doctor review, and sweeps that touch other doctors
+// still require the service-role key and return ServerNotConfiguredError.
 
 export const SERVER_NOT_CONFIGURED = "Server not fully configured";
 
@@ -21,12 +20,11 @@ export class ServerNotConfiguredError extends Error {
   }
 }
 
-interface RequestAuth {
-  accessToken: string;
-  userId: string;
-}
-
-const requestAuth = new AsyncLocalStorage<RequestAuth>();
+export type RequestAuth = {
+  user: User;
+  token: string;
+  db: SupabaseClient;
+};
 
 export function hasServiceRoleKey(): boolean {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -59,25 +57,15 @@ export function createServiceClient(): SupabaseClient {
   return createClient(supabaseUrl(), process.env.SUPABASE_SERVICE_ROLE_KEY!.trim(), { auth: authOptions });
 }
 
-// Service role when configured; otherwise the caller's JWT so Postgres sees
-// auth.uid(). With neither, the anon key is used and RLS denies user rows.
-export function dataClient(): SupabaseClient {
+// The client route handlers must thread through. Service role when configured
+// (RLS bypass); otherwise the anon key with this user's Authorization header.
+export function clientForToken(accessToken: string): SupabaseClient {
   if (hasServiceRoleKey()) return createServiceClient();
-  const token = requestAuth.getStore()?.accessToken;
-  if (token) return createUserClient(token);
-  return createAnonAuthClient();
+  return createUserClient(accessToken);
 }
 
 export function requireServiceClient(): SupabaseClient {
   return createServiceClient();
-}
-
-export function currentUserId(): string | null {
-  return requestAuth.getStore()?.userId ?? null;
-}
-
-export function requestAuthToken(): string | null {
-  return requestAuth.getStore()?.accessToken ?? null;
 }
 
 export function parseCookieHeader(header: string): Record<string, string> {
@@ -176,23 +164,22 @@ export function accessTokenFromRequest(request: Request): string | null {
   return null;
 }
 
-async function userFromAccessToken(token: string): Promise<User | null> {
+async function userFromAccessToken(token: string): Promise<RequestAuth | null> {
   const client = createAnonAuthClient();
   const { data, error } = await client.auth.getUser(token);
   if (error || !data?.user) return null;
-  requestAuth.enterWith({ accessToken: token, userId: data.user.id });
-  return data.user;
+  return { user: data.user, token, db: clientForToken(token) };
 }
 
 // Verifies a bearer token or a Supabase auth cookie with the anon key.
-// Never uses the service-role key, so a missing service key is not a 401.
-export async function getUserFromRequest(request: Request): Promise<User | null> {
+// Never uses the service-role key for getUser, so a missing service key is not a 401.
+export async function getUserFromRequest(request: Request): Promise<RequestAuth | null> {
   const token = accessTokenFromRequest(request);
   if (!token) return null;
   return userFromAccessToken(token);
 }
 
-export async function getUserFromAccessToken(token: string): Promise<User | null> {
+export async function getUserFromAccessToken(token: string): Promise<RequestAuth | null> {
   const trimmed = token.trim();
   if (!trimmed) return null;
   return userFromAccessToken(trimmed);
@@ -206,43 +193,20 @@ export function adminConfigGate(user: User | null): { ok: false; status: number;
   return { ok: true, user };
 }
 
-// ---------- Quota ----------
+// ---------- Sessions (visit history — metadata only, no message content) ----------
 
-export async function checkQuota(userId: string, agent: AgentMode, limit: number): Promise<QuotaResult> {
-  const db = dataClient();
-  const startOfDay = new Date();
-  startOfDay.setUTCHours(0, 0, 0, 0);
-  const { count, error } = await db
-    .from("generations")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("agent", agent)
-    .gte("created_at", startOfDay.toISOString());
-  if (error) return { allowed: true, used: 0, limit }; // fail open, log in production
-  const used = count || 0;
-  return { allowed: used < limit, used, limit };
-}
-
-export async function recordGeneration(userId: string, agent: AgentMode, meta: Record<string, unknown>): Promise<void> {
-  const db = dataClient();
-  await db.from("generations").insert({ user_id: userId, agent, meta });
-}
-
-// ---------- Sessions (sidebar history — metadata only, no message content) ----------
-
-export async function listSessions(userId: string): Promise<Session[]> {
-  const db = dataClient();
+export async function listSessions(db: SupabaseClient, userId: string): Promise<Session[]> {
   const { data, error } = await db
     .from("sessions")
     .select("*")
     .eq("user_id", userId)
+    .eq("agent", "doctor")
     .order("updated_at", { ascending: false });
   if (error) return [];
   return (data as Session[]) || [];
 }
 
-export async function createSession(userId: string, agent: AgentMode, title: string): Promise<Session | null> {
-  const db = dataClient();
+export async function createSession(db: SupabaseClient, userId: string, agent: AgentMode, title: string): Promise<Session | null> {
   const { data, error } = await db
     .from("sessions")
     .insert({ user_id: userId, agent, title })
@@ -252,8 +216,7 @@ export async function createSession(userId: string, agent: AgentMode, title: str
   return data as Session;
 }
 
-export async function renameSession(userId: string, sessionId: string, title: string): Promise<Session | null> {
-  const db = dataClient();
+export async function renameSession(db: SupabaseClient, userId: string, sessionId: string, title: string): Promise<Session | null> {
   const { data, error } = await db
     .from("sessions")
     .update({ title, updated_at: new Date().toISOString() })
@@ -265,16 +228,14 @@ export async function renameSession(userId: string, sessionId: string, title: st
   return data as Session;
 }
 
-export async function deleteSession(userId: string, sessionId: string): Promise<boolean> {
-  const db = dataClient();
+export async function deleteSession(db: SupabaseClient, userId: string, sessionId: string): Promise<boolean> {
   const { error } = await db.from("sessions").delete().eq("id", sessionId).eq("user_id", userId);
   return !error;
 }
 
 // ---------- Messages (full thread content, scoped to a session the caller owns) ----------
 
-export async function getSessionOwned(userId: string, sessionId: string): Promise<boolean> {
-  const db = dataClient();
+export async function getSessionOwned(db: SupabaseClient, userId: string, sessionId: string): Promise<boolean> {
   const { data, error } = await db
     .from("sessions")
     .select("id")
@@ -284,8 +245,7 @@ export async function getSessionOwned(userId: string, sessionId: string): Promis
   return !error && !!data;
 }
 
-export async function listMessages(sessionId: string): Promise<ChatMessage[]> {
-  const db = dataClient();
+export async function listMessages(db: SupabaseClient, sessionId: string): Promise<ChatMessage[]> {
   const { data, error } = await db
     .from("messages")
     .select("content")
@@ -295,40 +255,19 @@ export async function listMessages(sessionId: string): Promise<ChatMessage[]> {
   return (data || []).map((row) => row.content as ChatMessage);
 }
 
-export async function appendMessage(sessionId: string, role: string, content: ChatMessage): Promise<void> {
-  const db = dataClient();
+export async function appendMessage(db: SupabaseClient, sessionId: string, role: string, content: ChatMessage): Promise<void> {
   await Promise.all([
     db.from("messages").insert({ session_id: sessionId, role, content }),
     db.from("sessions").update({ updated_at: new Date().toISOString() }).eq("id", sessionId),
   ]);
 }
 
-// ---------- Billing tab usage stats ----------
+// ---------- Privacy: delete chat history ----------
 
-export async function getUsage(userId: string, builderLimit: number, farmLimit: number): Promise<UsageStats> {
-  const [builder, farm] = await Promise.all([
-    checkQuota(userId, "builder", builderLimit),
-    checkQuota(userId, "farm", farmLimit),
-  ]);
-  return {
-    builder: { used: builder.used, limit: builder.limit },
-    farm: { used: farm.used, limit: farm.limit },
-  };
+export async function wipeUserData(db: SupabaseClient, userId: string): Promise<void> {
+  await db.from("sessions").delete().eq("user_id", userId);
 }
 
-// ---------- Privacy tab: delete-all-data ----------
-
-export async function wipeUserData(userId: string): Promise<void> {
-  const db = dataClient();
-  await Promise.all([
-    db.from("generations").delete().eq("user_id", userId),
-    db.from("sessions").delete().eq("user_id", userId),
-  ]);
-}
-
-// ---------- Billing tab: Pro waitlist ----------
-
-export async function insertWaitlistEmail(userId: string | null, email: string): Promise<void> {
-  const db = dataClient();
+export async function insertWaitlistEmail(db: SupabaseClient, userId: string | null, email: string): Promise<void> {
   await db.from("waitlist_signups").insert({ user_id: userId, email });
 }

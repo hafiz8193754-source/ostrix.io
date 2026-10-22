@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyTwilioRequest } from "@/lib/twilio";
 import { markCallEnded, logClinicalAudit } from "@/lib/clinical";
+import { getUserFromAccessToken } from "@/lib/serverAuth";
 
 // Handles both the call-level statusCallback (fires once per leg, CallStatus
 // "completed") and the conference-level statusCallback (fires on
@@ -13,6 +14,9 @@ export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
   const consultationId = searchParams.get("consultation");
   if (!consultationId) return NextResponse.json({ ok: true });
+  const session = await getUserFromAccessToken(searchParams.get("token") || "");
+  if (!session) return NextResponse.json({ error: "Invalid session." }, { status: 401 });
+  const { db } = session;
 
   const callStatus = params.CallStatus;
   const conferenceEvent = params.StatusCallbackEvent;
@@ -20,8 +24,8 @@ export async function POST(request: Request) {
   const duration = durationRaw ? parseInt(durationRaw, 10) : null;
 
   if (callStatus === "completed" || conferenceEvent === "conference-end") {
-    await markCallEnded(consultationId, Number.isFinite(duration) ? duration : null);
-    await logClinicalAudit(consultationId, null, "system", "call_ended", { callStatus, conferenceEvent, duration });
+    await markCallEnded(db, consultationId, Number.isFinite(duration) ? duration : null);
+    await logClinicalAudit(db, consultationId, null, "system", "call_ended", { callStatus, conferenceEvent, duration });
   }
 
   return NextResponse.json({ ok: true });

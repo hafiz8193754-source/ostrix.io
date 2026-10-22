@@ -18,13 +18,13 @@ export async function POST(request: Request) {
   if (!parsed.success)
     return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid request." }, { status: 400 });
 
-  const consultation = await getConsultation(parsed.data.consultation_id);
+  const consultation = await getConsultation(guard.db, parsed.data.consultation_id);
   if (!consultation) return NextResponse.json({ error: "Consultation not found." }, { status: 404 });
   if (consultation.doctor_id !== guard.doctor.id)
     return NextResponse.json({ error: "You are not the doctor for this consultation." }, { status: 403 });
 
   try {
-    const summary = await generateVisitSummary(parsed.data.consultation_id, parsed.data.doctor_notes);
+    const summary = await generateVisitSummary(guard.db, parsed.data.consultation_id, parsed.data.doctor_notes);
     return NextResponse.json({ summary });
   } catch {
     return NextResponse.json({ error: "Could not generate the summary right now." }, { status: 502 });

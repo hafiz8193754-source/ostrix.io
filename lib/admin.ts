@@ -9,7 +9,8 @@ export type AdminGuardResult = { ok: true; user: User; admin: PlatformAdmin } | 
 // "platform admin" is a row in platform_admins, inserted by hand — there is
 // no self-service path to become one.
 export async function requireAdmin(request: Request): Promise<AdminGuardResult> {
-  const gate = adminConfigGate(await getUserFromRequest(request));
+  const auth = await getUserFromRequest(request);
+  const gate = adminConfigGate(auth?.user ?? null);
   if (!gate.ok) return { ok: false, status: gate.status, error: gate.error };
 
   const client = requireServiceClient();

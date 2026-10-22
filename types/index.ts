@@ -1,4 +1,4 @@
-export type AgentMode = "prompt_engineer" | "builder" | "farm" | "doctor";
+export type AgentMode = "doctor";
 
 // A file queued client-side (Prompt Engineer's attach bar) before it's sent
 // with the next chat message — data is base64, no "data:" prefix.

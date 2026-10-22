@@ -15,12 +15,12 @@ export async function POST(request: Request) {
   const parsed = prescriptionDraftSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
 
-  const consultation = await getConsultation(parsed.data.consultation_id);
+  const consultation = await getConsultation(guard.db, parsed.data.consultation_id);
   if (!consultation) return NextResponse.json({ error: "Consultation not found." }, { status: 404 });
   if (consultation.doctor_id !== doctor.id)
     return NextResponse.json({ error: "You are not the doctor assigned to this consultation." }, { status: 403 });
 
-  const patient = await getPatientById(consultation.patient_id);
+  const patient = await getPatientById(guard.db, consultation.patient_id);
   if (!patient) return NextResponse.json({ error: "Could not load consultation details." }, { status: 500 });
 
   try {
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       patientGender: patient.gender,
     });
 
-    const prescription = await savePrescriptionDraft(
+    const prescription = await savePrescriptionDraft(guard.db, 
       consultation.id,
       doctor.id,
       patient.id,
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     );
     if (!prescription) return NextResponse.json({ error: "Could not save the draft." }, { status: 500 });
 
-    await logClinicalAudit(consultation.id, prescription.id, "ai", "prescription_drafted", { medicationCount: draft.medications.length });
+    await logClinicalAudit(guard.db, consultation.id, prescription.id, "ai", "prescription_drafted", { medicationCount: draft.medications.length });
 
     return NextResponse.json({
       prescription_id: prescription.id,

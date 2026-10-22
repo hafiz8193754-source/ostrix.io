@@ -1,32 +1,31 @@
-import type { Notification } from "@/types";
-import { createUserClient, currentUserId, dataClient, hasServiceRoleKey, requestAuthToken, ServerNotConfiguredError } from "@/lib/serverAuth";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-// In-app only — no email/SMS/push. Fired on: registration submitted,
-// verification approved/rejected/suspended, more-info requested, PMDC expiry
-// warning, new appointment booked, appointment cancelled, doctor now available.
+import type { Notification } from "@/types";
+
+// In-app only — no email/SMS/push. A user inserts their own row under
+// "Own notifications". Notifying the other party of a shared appointment is
+// allowed by "Care participants notify each other". Anything else is rejected
+// by RLS. Admin and sweep callers pass the service-role client.
 export async function createNotification(
+  db: SupabaseClient,
   userId: string,
   type: string,
   title: string,
   body?: string,
   link?: string
 ): Promise<void> {
-  const row = { user_id: userId, type, title, body: body || null, link: link || null };
-  // Notifying somebody else bypasses RLS and needs the service role.
-  // A user inserting their own row is allowed by "Own notifications".
-  if (hasServiceRoleKey()) {
-    await dataClient().from("notifications").insert(row);
-    return;
-  }
-  const caller = currentUserId();
-  const token = requestAuthToken();
-  if (!caller || caller !== userId || !token) throw new ServerNotConfiguredError();
-  await createUserClient(token).from("notifications").insert(row);
+  const { error } = await db.from("notifications").insert({
+    user_id: userId,
+    type,
+    title,
+    body: body || null,
+    link: link || null,
+  });
+  if (error) throw new Error(error.message);
 }
 
-export async function listNotifications(userId: string, limit = 30): Promise<Notification[]> {
-  const admin = dataClient();
-  const { data, error } = await admin
+export async function listNotifications(db: SupabaseClient, userId: string, limit = 30): Promise<Notification[]> {
+  const { data, error } = await db
     .from("notifications")
     .select("*")
     .eq("user_id", userId)
@@ -36,9 +35,8 @@ export async function listNotifications(userId: string, limit = 30): Promise<Not
   return (data || []) as Notification[];
 }
 
-export async function countUnreadNotifications(userId: string): Promise<number> {
-  const admin = dataClient();
-  const { count, error } = await admin
+export async function countUnreadNotifications(db: SupabaseClient, userId: string): Promise<number> {
+  const { count, error } = await db
     .from("notifications")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
@@ -47,9 +45,8 @@ export async function countUnreadNotifications(userId: string): Promise<number> 
   return count || 0;
 }
 
-export async function markNotificationsRead(userId: string, ids?: string[]): Promise<void> {
-  const admin = dataClient();
-  let query = admin.from("notifications").update({ is_read: true }).eq("user_id", userId);
+export async function markNotificationsRead(db: SupabaseClient, userId: string, ids?: string[]): Promise<void> {
+  let query = db.from("notifications").update({ is_read: true }).eq("user_id", userId);
   if (ids && ids.length) query = query.in("id", ids);
   await query;
 }

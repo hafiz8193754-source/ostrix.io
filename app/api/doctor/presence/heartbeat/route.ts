@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
-import { adminConfigGate, getUserFromRequest } from "@/lib/serverAuth";
+import { getUserFromRequest } from "@/lib/serverAuth";
 import { heartbeatSchema } from "@/lib/schemas";
 import { getDoctorByUserId, recordHeartbeat } from "@/lib/clinical";
 
 // Not gated by requireVerifiedDoctor — presence has no legal weight and an
 // unverified doctor is still offline/unbookable regardless of what this
-// route does (lib/presence.ts's pmdc_verified gate is absolute).
+// route does (lib/presence.ts's pmdc_verified gate is absolute). The write is
+// the doctor's own row, so it uses the caller's session and RLS.
 export async function POST(request: Request) {
-  const gate = adminConfigGate(await getUserFromRequest(request));
-  if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status });
+  const auth = await getUserFromRequest(request);
+  if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
-  const doctor = await getDoctorByUserId(gate.user.id);
+  const doctor = await getDoctorByUserId(auth.db, auth.user.id);
   if (!doctor) return NextResponse.json({ error: "No doctor profile found for this account." }, { status: 404 });
 
   const body = await request.json().catch(() => ({}));
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
   if (!parsed.success)
     return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid request." }, { status: 400 });
 
-  const result = await recordHeartbeat(doctor.id, parsed.data.status, parsed.data.reset_override);
+  const result = await recordHeartbeat(auth.db, doctor.id, parsed.data.status, parsed.data.reset_override);
   if (!result) return NextResponse.json({ error: "Could not record heartbeat." }, { status: 500 });
 
   return NextResponse.json({

@@ -1,8 +1,10 @@
 import { createHash } from "crypto";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { computePresence, type PresenceResult } from "@/lib/presence";
 import { createNotification } from "@/lib/notifications";
-import { dataClient, requireServiceClient } from "@/lib/serverAuth";
+import { requireServiceClient } from "@/lib/serverAuth";
 
 export { VERIFICATION_CHECKLIST_ITEMS } from "@/lib/verificationChecklist";
 import type {
@@ -19,11 +21,6 @@ import type {
 } from "@/types";
 import type { AvailabilityExceptionInput, DoctorRegisterInput, ScheduleRowInput } from "@/lib/schemas";
 
-// User-scoped reads and writes follow RLS when the service-role key is unset.
-function adminClient() {
-  return dataClient();
-}
-
 // Presence sweeps and admin review touch other users' rows. They need the
 // service role; callers that cannot proceed without it already return 503.
 function serviceClient() {
@@ -32,15 +29,17 @@ function serviceClient() {
 
 // ---------- Doctors ----------
 
-export async function getDoctorByUserId(userId: string): Promise<Doctor | null> {
-  const admin = adminClient();
+export async function getDoctorByUserId(
+  db: SupabaseClient,userId: string): Promise<Doctor | null> {
+  const admin = db;
   const { data, error } = await admin.from("doctors").select("*").eq("user_id", userId).maybeSingle();
   if (error || !data) return null;
   return data as Doctor;
 }
 
-export async function getDoctorById(doctorId: string): Promise<Doctor | null> {
-  const admin = adminClient();
+export async function getDoctorById(
+  db: SupabaseClient,doctorId: string): Promise<Doctor | null> {
+  const admin = db;
   const { data, error } = await admin.from("doctors").select("*").eq("id", doctorId).maybeSingle();
   if (error || !data) return null;
   return data as Doctor;
@@ -57,8 +56,9 @@ export interface DoctorSearchFilters {
 // joins schedule+exceptions and computes live presence per doctor, applying
 // the patient-facing sort order (available now > scheduled-available >
 // offline-by-soonest-next-available > the rest, rating breaks ties).
-export async function searchDoctors(filters: DoctorSearchFilters): Promise<DoctorWithPresence[]> {
-  const admin = adminClient();
+export async function searchDoctors(
+  db: SupabaseClient,filters: DoctorSearchFilters): Promise<DoctorWithPresence[]> {
+  const admin = db;
   let query = admin
     .from("doctors")
     .select("*")
@@ -131,8 +131,9 @@ function deriveLegacyAvailability(rows: { day_of_week: number; start_time: strin
 // strips any verification fields from the raw request body before this ever
 // runs, so there is no path by which a doctor can self-verify) plus their
 // initial weekly schedule.
-export async function registerDoctor(userId: string, input: DoctorRegisterInput): Promise<Doctor | null> {
-  const admin = adminClient();
+export async function registerDoctor(
+  db: SupabaseClient,userId: string, input: DoctorRegisterInput): Promise<Doctor | null> {
+  const admin = db;
   const legacy = deriveLegacyAvailability(input.schedule);
   const { data, error } = await admin
     .from("doctors")
@@ -179,10 +180,14 @@ export async function registerDoctor(userId: string, input: DoctorRegisterInput)
   return data as Doctor;
 }
 
-export async function isPmdcNumberTaken(pmdcNumber: string): Promise<boolean> {
-  const admin = adminClient();
-  const { data } = await admin.from("doctors").select("id").eq("pmdc_number", pmdcNumber).maybeSingle();
-  return !!data;
+export async function isPmdcNumberTaken(
+  db: SupabaseClient,pmdcNumber: string): Promise<boolean> {
+  const { data, error } = await db.rpc("pmdc_number_taken", { candidate: pmdcNumber });
+  if (!error && typeof data === "boolean") return data;
+  // Before the migration is applied, a direct read still catches numbers the
+  // caller is allowed to see. The unique constraint remains the backstop.
+  const { data: row } = await db.from("doctors").select("id").eq("pmdc_number", pmdcNumber).maybeSingle();
+  return !!row;
 }
 
 // ---------- Patients ----------
@@ -198,8 +203,9 @@ interface PatientProfileInput {
 
 // Patients don't have their own onboarding step — a profile is created (or
 // refreshed) the moment they book their first appointment.
-export async function getOrCreatePatientForUser(userId: string, profile: PatientProfileInput): Promise<Patient | null> {
-  const admin = adminClient();
+export async function getOrCreatePatientForUser(
+  db: SupabaseClient,userId: string, profile: PatientProfileInput): Promise<Patient | null> {
+  const admin = db;
   const { data: existing } = await admin.from("patients").select("*").eq("user_id", userId).maybeSingle();
   if (existing) {
     const { data, error } = await admin
@@ -236,8 +242,9 @@ export async function getOrCreatePatientForUser(userId: string, profile: Patient
   return data as Patient;
 }
 
-export async function getPatientById(patientId: string): Promise<Patient | null> {
-  const admin = adminClient();
+export async function getPatientById(
+  db: SupabaseClient,patientId: string): Promise<Patient | null> {
+  const admin = db;
   const { data, error } = await admin.from("patients").select("*").eq("id", patientId).maybeSingle();
   if (error || !data) return null;
   return data as Patient;
@@ -257,17 +264,34 @@ interface CreateAppointmentInput {
   session_id?: string;
 }
 
-export async function createAppointment(input: CreateAppointmentInput): Promise<Appointment | null> {
-  const admin = adminClient();
+export async function createAppointment(
+  db: SupabaseClient,input: CreateAppointmentInput): Promise<Appointment | null> {
+  const admin = db;
   const { data, error } = await admin.from("appointments").insert(input).select("*").single();
   if (error) return null;
   return data as Appointment;
 }
 
+export async function updateAppointmentStatus(
+  db: SupabaseClient,
+  appointmentId: string,
+  status: Appointment["status"]
+): Promise<Appointment | null> {
+  const { data, error } = await db
+    .from("appointments")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", appointmentId)
+    .select("*")
+    .single();
+  if (error) return null;
+  return data as Appointment;
+}
+
 export async function getAppointmentWithParties(
+  db: SupabaseClient,
   appointmentId: string
 ): Promise<{ appointment: Appointment; doctor: Doctor; patient: Patient } | null> {
-  const admin = adminClient();
+  const admin = db;
   const { data: appointment, error } = await admin.from("appointments").select("*").eq("id", appointmentId).maybeSingle();
   if (error || !appointment) return null;
   const [{ data: doctor }, { data: patient }] = await Promise.all([
@@ -278,8 +302,9 @@ export async function getAppointmentWithParties(
   return { appointment: appointment as Appointment, doctor: doctor as Doctor, patient: patient as Patient };
 }
 
-export async function listDoctorAppointmentsToday(doctorId: string): Promise<Appointment[]> {
-  const admin = adminClient();
+export async function listDoctorAppointmentsToday(
+  db: SupabaseClient,doctorId: string): Promise<Appointment[]> {
+  const admin = db;
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await admin
     .from("appointments")
@@ -293,8 +318,9 @@ export async function listDoctorAppointmentsToday(doctorId: string): Promise<App
 
 // ---------- Consultations (the call/visit record) ----------
 
-export async function createConsultation(appointmentId: string, doctorId: string, patientId: string): Promise<Consultation | null> {
-  const admin = adminClient();
+export async function createConsultation(
+  db: SupabaseClient,appointmentId: string, doctorId: string, patientId: string): Promise<Consultation | null> {
+  const admin = db;
   const { data, error } = await admin
     .from("consultations")
     .insert({ appointment_id: appointmentId, doctor_id: doctorId, patient_id: patientId })
@@ -304,20 +330,23 @@ export async function createConsultation(appointmentId: string, doctorId: string
   return data as Consultation;
 }
 
-export async function getConsultation(consultationId: string): Promise<Consultation | null> {
-  const admin = adminClient();
+export async function getConsultation(
+  db: SupabaseClient,consultationId: string): Promise<Consultation | null> {
+  const admin = db;
   const { data, error } = await admin.from("consultations").select("*").eq("id", consultationId).maybeSingle();
   if (error || !data) return null;
   return data as Consultation;
 }
 
-export async function startCallRecording(consultationId: string) {
-  const admin = adminClient();
+export async function startCallRecording(
+  db: SupabaseClient,consultationId: string) {
+  const admin = db;
   await admin.from("consultations").update({ call_started_at: new Date().toISOString() }).eq("id", consultationId);
 }
 
-export async function setCallConsent(consultationId: string, party: "patient" | "doctor", consents: boolean) {
-  const admin = adminClient();
+export async function setCallConsent(
+  db: SupabaseClient,consultationId: string, party: "patient" | "doctor", consents: boolean) {
+  const admin = db;
   const column = party === "patient" ? "call_recording_consent_patient" : "call_recording_consent_doctor";
   const { data, error } = await admin
     .from("consultations")
@@ -329,8 +358,9 @@ export async function setCallConsent(consultationId: string, party: "patient" | 
   return data as Consultation;
 }
 
-export async function endCall(consultationId: string, durationSeconds: number, doctorNotes: string) {
-  const admin = adminClient();
+export async function endCall(
+  db: SupabaseClient,consultationId: string, durationSeconds: number, doctorNotes: string) {
+  const admin = db;
   const { data, error } = await admin
     .from("consultations")
     .update({
@@ -345,39 +375,45 @@ export async function endCall(consultationId: string, durationSeconds: number, d
   return data as Consultation;
 }
 
-export async function saveVisitSummary(consultationId: string, summary: string) {
-  const admin = adminClient();
+export async function saveVisitSummary(
+  db: SupabaseClient,consultationId: string, summary: string) {
+  const admin = db;
   await admin.from("consultations").update({ ai_visit_summary: summary }).eq("id", consultationId);
 }
 
 // ---------- Real Twilio calling ----------
 
-export async function saveConsultationCallSid(consultationId: string, callSid: string): Promise<void> {
-  const admin = adminClient();
+export async function saveConsultationCallSid(
+  db: SupabaseClient,consultationId: string, callSid: string): Promise<void> {
+  const admin = db;
   await admin.from("consultations").update({ twilio_call_sid: callSid }).eq("id", consultationId);
 }
 
-export async function markCallEnded(consultationId: string, durationSeconds: number | null): Promise<void> {
-  const admin = adminClient();
+export async function markCallEnded(
+  db: SupabaseClient,consultationId: string, durationSeconds: number | null): Promise<void> {
+  const admin = db;
   await admin
     .from("consultations")
     .update({ call_ended_at: new Date().toISOString(), call_duration_seconds: durationSeconds })
     .eq("id", consultationId);
 }
 
-export async function saveCallRecording(consultationId: string, recordingUrl: string, transcript: string): Promise<void> {
-  const admin = adminClient();
+export async function saveCallRecording(
+  db: SupabaseClient,consultationId: string, recordingUrl: string, transcript: string): Promise<void> {
+  const admin = db;
   await admin.from("consultations").update({ call_recording_url: recordingUrl, ai_transcript: transcript }).eq("id", consultationId);
 }
 
-export async function saveDoctorSignature(doctorId: string, signaturePath: string): Promise<void> {
-  const admin = adminClient();
+export async function saveDoctorSignature(
+  db: SupabaseClient,doctorId: string, signaturePath: string): Promise<void> {
+  const admin = db;
   await admin.from("doctors").update({ signature_url: signaturePath }).eq("id", doctorId);
 }
 
 // ---------- Prescriptions ----------
 
 export async function savePrescriptionDraft(
+  db: SupabaseClient,
   consultationId: string,
   doctorId: string,
   patientId: string,
@@ -386,7 +422,7 @@ export async function savePrescriptionDraft(
   warnings: string[],
   drugInteractions: string[]
 ): Promise<Prescription | null> {
-  const admin = adminClient();
+  const admin = db;
   const { data, error } = await admin
     .from("prescriptions")
     .insert({
@@ -405,15 +441,17 @@ export async function savePrescriptionDraft(
   return data as Prescription;
 }
 
-export async function getPrescription(prescriptionId: string): Promise<Prescription | null> {
-  const admin = adminClient();
+export async function getPrescription(
+  db: SupabaseClient,prescriptionId: string): Promise<Prescription | null> {
+  const admin = db;
   const { data, error } = await admin.from("prescriptions").select("*").eq("id", prescriptionId).maybeSingle();
   if (error || !data) return null;
   return data as Prescription;
 }
 
-export async function listPendingPrescriptions(doctorId: string): Promise<Prescription[]> {
-  const admin = adminClient();
+export async function listPendingPrescriptions(
+  db: SupabaseClient,doctorId: string): Promise<Prescription[]> {
+  const admin = db;
   const { data, error } = await admin
     .from("prescriptions")
     .select("*")
@@ -427,10 +465,11 @@ export async function listPendingPrescriptions(doctorId: string): Promise<Prescr
 // Authorization gate for the review endpoint — the single most safety-critical
 // check in this module. Returns the doctor row only if the requesting user is
 // a PMDC-verified doctor AND is the doctor assigned to this prescription.
-export async function verifyDoctorForPrescription(userId: string, prescriptionId: string): Promise<{ doctor: Doctor; prescription: Prescription } | null> {
-  const prescription = await getPrescription(prescriptionId);
+export async function verifyDoctorForPrescription(
+  db: SupabaseClient,userId: string, prescriptionId: string): Promise<{ doctor: Doctor; prescription: Prescription } | null> {
+  const prescription = await getPrescription(db, prescriptionId);
   if (!prescription) return null;
-  const doctor = await getDoctorByUserId(userId);
+  const doctor = await getDoctorByUserId(db, userId);
   if (!doctor || !doctor.pmdc_verified || doctor.registration_status !== "verified" || !doctor.is_active) return null;
   if (doctor.id !== prescription.doctor_id) return null;
   return { doctor, prescription };
@@ -441,11 +480,12 @@ interface ReviewResult {
 }
 
 export async function approvePrescription(
+  db: SupabaseClient,
   prescriptionId: string,
   doctorId: string,
   finalContent: PrescriptionData
 ): Promise<ReviewResult | null> {
-  const admin = adminClient();
+  const admin = db;
   const signedAt = new Date().toISOString();
   const signatureHash = createHash("sha256").update(`${doctorId}:${JSON.stringify(finalContent)}:${signedAt}`).digest("hex");
   const { data, error } = await admin
@@ -465,8 +505,9 @@ export async function approvePrescription(
   return { prescription: data as Prescription };
 }
 
-export async function rejectPrescription(prescriptionId: string, reason: string): Promise<ReviewResult | null> {
-  const admin = adminClient();
+export async function rejectPrescription(
+  db: SupabaseClient,prescriptionId: string, reason: string): Promise<ReviewResult | null> {
+  const admin = db;
   const { data, error } = await admin
     .from("prescriptions")
     .update({ status: "rejected", rejection_reason: reason, updated_at: new Date().toISOString() })
@@ -477,8 +518,9 @@ export async function rejectPrescription(prescriptionId: string, reason: string)
   return { prescription: data as Prescription };
 }
 
-export async function editPrescription(prescriptionId: string, edited: PrescriptionData): Promise<ReviewResult | null> {
-  const admin = adminClient();
+export async function editPrescription(
+  db: SupabaseClient,prescriptionId: string, edited: PrescriptionData): Promise<ReviewResult | null> {
+  const admin = db;
   const { data, error } = await admin
     .from("prescriptions")
     .update({ status: "revised", doctor_edited_prescription: edited, updated_at: new Date().toISOString() })
@@ -489,28 +531,30 @@ export async function editPrescription(prescriptionId: string, edited: Prescript
   return { prescription: data as Prescription };
 }
 
-export async function savePrescriptionPdfUrl(prescriptionId: string, url: string) {
-  const admin = adminClient();
+export async function savePrescriptionPdfUrl(
+  db: SupabaseClient,prescriptionId: string, url: string) {
+  const admin = db;
   await admin.from("prescriptions").update({ pdf_url: url }).eq("id", prescriptionId);
 }
 
-// Stores a durable copy in the private "prescriptions" bucket the moment a
-// doctor approves — written only via this service-role client, so no
-// client-facing storage policy is needed (patients/doctors only ever read a
-// prescription PDF through the ownership-checked /api/doctor/prescription/pdf route).
-export async function uploadPrescriptionPdf(path: string, bytes: Buffer): Promise<void> {
-  const admin = adminClient();
+// Stores a durable copy in the private "prescriptions" bucket when a doctor
+// approves. The user client uploads it; storage policies allow the assigned
+// doctor to write `{doctor_id}/{prescription_id}.pdf` and the patient to read it.
+export async function uploadPrescriptionPdf(
+  db: SupabaseClient,path: string, bytes: Buffer): Promise<void> {
+  const admin = db;
   await admin.storage.from("prescriptions").upload(path, bytes, { upsert: true, contentType: "application/pdf" });
 }
 
 // ---------- Dashboard ----------
 
-export async function getDashboardData(doctorId: string) {
+export async function getDashboardData(
+  db: SupabaseClient,doctorId: string) {
   const [todaysAppointments, pendingPrescriptions] = await Promise.all([
-    listDoctorAppointmentsToday(doctorId),
-    listPendingPrescriptions(doctorId),
+    listDoctorAppointmentsToday(db, doctorId),
+    listPendingPrescriptions(db, doctorId),
   ]);
-  const admin = adminClient();
+  const admin = db;
   const { data: recentConsultations } = await admin
     .from("consultations")
     .select("*")
@@ -523,9 +567,10 @@ export async function getDashboardData(doctorId: string) {
 // ---------- Weekly schedule & availability exceptions ----------
 
 export async function getDoctorScheduleAndExceptions(
+  db: SupabaseClient,
   doctorId: string
 ): Promise<{ schedule: DoctorSchedule[]; exceptions: AvailabilityException[] }> {
-  const admin = adminClient();
+  const admin = db;
   const today = new Date().toISOString().slice(0, 10);
   const [{ data: schedule }, { data: exceptions }] = await Promise.all([
     admin.from("doctor_schedules").select("*").eq("doctor_id", doctorId).eq("is_active", true).order("day_of_week"),
@@ -536,8 +581,9 @@ export async function getDoctorScheduleAndExceptions(
 
 // Replace-all save (simplest way to guarantee no orphaned/overlapping rows
 // from a prior save survive) — also refreshes the legacy summary columns.
-export async function saveDoctorSchedule(doctorId: string, rows: ScheduleRowInput[]): Promise<DoctorSchedule[]> {
-  const admin = adminClient();
+export async function saveDoctorSchedule(
+  db: SupabaseClient,doctorId: string, rows: ScheduleRowInput[]): Promise<DoctorSchedule[]> {
+  const admin = db;
   await admin.from("doctor_schedules").delete().eq("doctor_id", doctorId);
   if (rows.length) {
     await admin.from("doctor_schedules").insert(rows.map((r) => ({ doctor_id: doctorId, ...r })));
@@ -548,10 +594,11 @@ export async function saveDoctorSchedule(doctorId: string, rows: ScheduleRowInpu
 }
 
 export async function upsertAvailabilityException(
+  db: SupabaseClient,
   doctorId: string,
   input: AvailabilityExceptionInput
 ): Promise<AvailabilityException | null> {
-  const admin = adminClient();
+  const admin = db;
   const { data, error } = await admin
     .from("doctor_availability_exceptions")
     .upsert(
@@ -571,19 +618,21 @@ export async function upsertAvailabilityException(
   return data as AvailabilityException;
 }
 
-export async function deleteAvailabilityException(doctorId: string, exceptionDate: string): Promise<void> {
-  const admin = adminClient();
+export async function deleteAvailabilityException(
+  db: SupabaseClient,doctorId: string, exceptionDate: string): Promise<void> {
+  const admin = db;
   await admin.from("doctor_availability_exceptions").delete().eq("doctor_id", doctorId).eq("exception_date", exceptionDate);
 }
 
 // ---------- Presence ----------
 
 export async function recordHeartbeat(
+  db: SupabaseClient,
   doctorId: string,
   status?: "available" | "busy" | "on_break" | "do_not_disturb",
   resetOverride?: boolean
 ): Promise<{ doctor: Doctor; presence: PresenceResult } | null> {
-  const admin = serviceClient();
+  const admin = db;
   const now = new Date();
   const patch: Record<string, unknown> = { last_seen_at: now.toISOString(), is_online: true };
   if (resetOverride) {
@@ -598,7 +647,7 @@ export async function recordHeartbeat(
   if (error || !updated) return null;
   const doctor = updated as Doctor;
 
-  const { schedule, exceptions } = await getDoctorScheduleAndExceptions(doctorId);
+  const { schedule, exceptions } = await getDoctorScheduleAndExceptions(db, doctorId);
   const presence = computePresence(doctor, schedule, exceptions, now);
   await admin.from("doctors").update({ availability_status: presence.status }).eq("id", doctorId);
   await admin
@@ -608,8 +657,9 @@ export async function recordHeartbeat(
   return { doctor: { ...doctor, availability_status: presence.status }, presence };
 }
 
-export async function markDoctorOffline(doctorId: string, source: "timeout" | "logout"): Promise<void> {
-  const admin = serviceClient();
+export async function markDoctorOffline(
+  db: SupabaseClient,doctorId: string, source: "timeout" | "logout"): Promise<void> {
+  const admin = db;
   await admin.from("doctors").update({ is_online: false, availability_status: "offline" }).eq("id", doctorId);
   await admin.from("doctor_presence_log").insert({ doctor_id: doctorId, status: "offline", source });
 }
@@ -660,9 +710,10 @@ export async function sweepExpiredPmdc(): Promise<number> {
   await admin.from("doctors").update({ registration_status: "suspended", pmdc_verified: false, is_active: false }).in("id", ids);
 
   for (const row of rows) {
-    await logDoctorVerification(row.id, row.registration_status, "suspended", null, "Automatic suspension: PMDC registration expired");
+    await logDoctorVerification(admin, row.id, row.registration_status, "suspended", null, "Automatic suspension: PMDC registration expired");
     if (row.user_id) {
       await createNotification(
+        admin,
         row.user_id,
         "pmdc_expired",
         "Your PMDC registration has expired",
@@ -693,6 +744,7 @@ export async function warnExpiringPmdc(): Promise<number> {
     await admin.from("doctors").update({ pmdc_expiry_warned_at: new Date().toISOString() }).eq("id", row.id);
     if (row.user_id) {
       await createNotification(
+        admin,
         row.user_id,
         "pmdc_expiring_soon",
         "Your PMDC registration is expiring soon",
@@ -716,15 +768,16 @@ export async function drainNotifyRequests(): Promise<number> {
   const doctorIds = Array.from(new Set(rows.map((r) => r.doctor_id)));
   let notifiedCount = 0;
   for (const doctorId of doctorIds) {
-    const doctor = await getDoctorById(doctorId);
+    const doctor = await getDoctorById(admin, doctorId);
     if (!doctor) continue;
-    const { schedule, exceptions } = await getDoctorScheduleAndExceptions(doctorId);
+    const { schedule, exceptions } = await getDoctorScheduleAndExceptions(admin, doctorId);
     const presence = computePresence(doctor, schedule, exceptions, new Date());
     if (!presence.is_bookable) continue;
 
     const requestsForDoctor = rows.filter((r) => r.doctor_id === doctorId);
     for (const req of requestsForDoctor) {
       await createNotification(
+        admin,
         req.patient_user_id,
         "doctor_available",
         `Dr. ${doctor.full_name} is now available`,
@@ -738,8 +791,9 @@ export async function drainNotifyRequests(): Promise<number> {
   return notifiedCount;
 }
 
-export async function createDoctorNotifyRequest(patientUserId: string, doctorId: string): Promise<void> {
-  const admin = adminClient();
+export async function createDoctorNotifyRequest(
+  db: SupabaseClient,patientUserId: string, doctorId: string): Promise<void> {
+  const admin = db;
   await admin.from("doctor_notify_requests").insert({ patient_user_id: patientUserId, doctor_id: doctorId });
 }
 
@@ -767,13 +821,14 @@ export async function countDoctorsByStatus(): Promise<Record<RegistrationStatus,
 }
 
 export async function logDoctorVerification(
+  db: SupabaseClient,
   doctorId: string,
   previousStatus: string | null,
   newStatus: string,
   changedBy: string | null,
   notes?: string
 ): Promise<void> {
-  const admin = adminClient();
+  const admin = db;
   await admin
     .from("doctor_verification_log")
     .insert({ doctor_id: doctorId, previous_status: previousStatus, new_status: newStatus, changed_by: changedBy, notes: notes || null });
@@ -782,7 +837,7 @@ export async function logDoctorVerification(
 // The only function in the codebase that may ever set pmdc_verified: true.
 export async function approveDoctor(doctorId: string, adminUserId: string): Promise<Doctor | null> {
   const admin = serviceClient();
-  const doctor = await getDoctorById(doctorId);
+  const doctor = await getDoctorById(admin, doctorId);
   if (!doctor) return null;
   const { data, error } = await admin
     .from("doctors")
@@ -799,16 +854,16 @@ export async function approveDoctor(doctorId: string, adminUserId: string): Prom
     .select("*")
     .single();
   if (error) return null;
-  await logDoctorVerification(doctorId, doctor.registration_status, "verified", adminUserId);
+  await logDoctorVerification(admin, doctorId, doctor.registration_status, "verified", adminUserId);
   if (doctor.user_id) {
-    await createNotification(doctor.user_id, "verification_approved", "You're verified!", "Your PMDC registration is confirmed — you can now accept patients and sign prescriptions.", "/doctor/dashboard");
+    await createNotification(admin, doctor.user_id, "verification_approved", "You're verified!", "Your PMDC registration is confirmed — you can now accept patients and sign prescriptions.", "/doctor/dashboard");
   }
   return data as Doctor;
 }
 
 export async function requestMoreInfo(doctorId: string, adminUserId: string, note: string): Promise<Doctor | null> {
   const admin = serviceClient();
-  const doctor = await getDoctorById(doctorId);
+  const doctor = await getDoctorById(admin, doctorId);
   if (!doctor) return null;
   const { data, error } = await admin
     .from("doctors")
@@ -817,16 +872,16 @@ export async function requestMoreInfo(doctorId: string, adminUserId: string, not
     .select("*")
     .single();
   if (error) return null;
-  await logDoctorVerification(doctorId, doctor.registration_status, "under_review", adminUserId, note);
+  await logDoctorVerification(admin, doctorId, doctor.registration_status, "under_review", adminUserId, note);
   if (doctor.user_id) {
-    await createNotification(doctor.user_id, "more_info_requested", "More information needed", note, "/doctor/dashboard");
+    await createNotification(admin, doctor.user_id, "more_info_requested", "More information needed", note, "/doctor/dashboard");
   }
   return data as Doctor;
 }
 
 export async function rejectDoctor(doctorId: string, adminUserId: string, reason: string): Promise<Doctor | null> {
   const admin = serviceClient();
-  const doctor = await getDoctorById(doctorId);
+  const doctor = await getDoctorById(admin, doctorId);
   if (!doctor) return null;
   const { data, error } = await admin
     .from("doctors")
@@ -835,9 +890,9 @@ export async function rejectDoctor(doctorId: string, adminUserId: string, reason
     .select("*")
     .single();
   if (error) return null;
-  await logDoctorVerification(doctorId, doctor.registration_status, "rejected", adminUserId, reason);
+  await logDoctorVerification(admin, doctorId, doctor.registration_status, "rejected", adminUserId, reason);
   if (doctor.user_id) {
-    await createNotification(doctor.user_id, "verification_rejected", "Registration rejected", reason, "/doctor/dashboard");
+    await createNotification(admin, doctor.user_id, "verification_rejected", "Registration rejected", reason, "/doctor/dashboard");
   }
   return data as Doctor;
 }
@@ -848,7 +903,7 @@ export async function suspendDoctor(
   reason: string
 ): Promise<{ doctor: Doctor; flaggedPrescriptionIds: string[] } | null> {
   const admin = serviceClient();
-  const doctor = await getDoctorById(doctorId);
+  const doctor = await getDoctorById(admin, doctorId);
   if (!doctor) return null;
   const { data, error } = await admin
     .from("doctors")
@@ -857,7 +912,7 @@ export async function suspendDoctor(
     .select("*")
     .single();
   if (error) return null;
-  await logDoctorVerification(doctorId, doctor.registration_status, "suspended", adminUserId, reason);
+  await logDoctorVerification(admin, doctorId, doctor.registration_status, "suspended", adminUserId, reason);
 
   const { data: pending } = await admin
     .from("prescriptions")
@@ -877,7 +932,7 @@ export async function suspendDoctor(
     );
   }
   if (doctor.user_id) {
-    await createNotification(doctor.user_id, "verification_suspended", "Account suspended", reason, "/doctor/dashboard");
+    await createNotification(admin, doctor.user_id, "verification_suspended", "Account suspended", reason, "/doctor/dashboard");
   }
   return { doctor: data as Doctor, flaggedPrescriptionIds };
 }
@@ -885,13 +940,14 @@ export async function suspendDoctor(
 // ---------- Audit log (mandatory on every clinical action) ----------
 
 export async function logClinicalAudit(
+  db: SupabaseClient,
   consultationId: string | null,
   prescriptionId: string | null,
   actor: "ai" | "doctor" | "patient" | "system",
   action: string,
   details: Record<string, unknown> = {}
 ): Promise<void> {
-  const admin = adminClient();
+  const admin = db;
   await admin.from("clinical_audit_log").insert({
     consultation_id: consultationId,
     prescription_id: prescriptionId,

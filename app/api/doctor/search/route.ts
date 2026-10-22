@@ -5,13 +5,14 @@ import { runPresenceSweep } from "@/lib/presenceSweep";
 
 // GET /api/doctor/search?specialization=&city=&online_only=&available_now=
 export async function GET(request: Request) {
-  const user = await getUserFromRequest(request);
-  if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const auth = await getUserFromRequest(request);
+  if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const { user, db } = auth;
 
   await runPresenceSweep();
 
   const { searchParams } = new URL(request.url);
-  const doctors = await searchDoctors({
+  const doctors = await searchDoctors(db, {
     specialization: searchParams.get("specialization") || undefined,
     city: searchParams.get("city") || undefined,
     online_only: searchParams.get("online_only") === "true",

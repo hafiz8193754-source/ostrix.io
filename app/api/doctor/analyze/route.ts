@@ -78,8 +78,9 @@ CRITICAL RULES:
 - If symptoms are vague or could point to multiple specializations, suggest starting with general_physician.`;
 
 export async function POST(request: Request) {
-  const user = await getUserFromRequest(request);
-  if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const auth = await getUserFromRequest(request);
+  if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const { user, db } = auth;
 
   const body = await request.json();
   const parsed = symptomAnalysisSchema.safeParse(body);
@@ -91,7 +92,7 @@ export async function POST(request: Request) {
   const emergency = detectEmergency(symptoms);
   const isInfantUnder3Months = patientAgeMonths !== undefined && patientAgeMonths < 3;
   if (emergency.isEmergency || isInfantUnder3Months) {
-    await logClinicalAudit(null, null, "system", "emergency_detected", {
+    await logClinicalAudit(db, null, null, "system", "emergency_detected", {
       symptoms,
       matchedKeyword: emergency.matchedKeyword,
       isInfantUnder3Months,
@@ -133,9 +134,9 @@ export async function POST(request: Request) {
     };
 
     await runPresenceSweep();
-    const matching_doctors = await searchDoctors({ specialization, city });
+    const matching_doctors = await searchDoctors(db, { specialization, city });
 
-    await logClinicalAudit(null, null, "ai", "symptom_analysis", { symptoms, patientAge, patientGender, analysis });
+    await logClinicalAudit(db, null, null, "ai", "symptom_analysis", { symptoms, patientAge, patientGender, analysis });
 
     return NextResponse.json({
       emergency: false,

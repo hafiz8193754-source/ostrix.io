@@ -55,7 +55,7 @@ export function ApiKeysSection({ profile, onSave }: ApiKeysSectionProps) {
                 {visible[p.key] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
               </button>
             </div>
-            <button onClick={() => save(p.key)} className="h-9 shrink-0 rounded-md bg-accent px-3 text-xs font-medium text-black">
+            <button onClick={() => save(p.key)} className="h-9 shrink-0 rounded-md bg-accent px-3 text-xs font-medium text-accent-fg">
               {saved === p.key ? "Saved" : "Save"}
             </button>
           </div>

@@ -147,7 +147,7 @@ export function PrescriptionCard({ prescription, doctor, patient, accessToken, p
 
       <div className="flex flex-wrap gap-2 print:hidden">
         {printable ? (
-          <button onClick={() => window.print()} className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-black">
+          <button onClick={() => window.print()} className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-accent-fg">
             <Printer className="h-3.5 w-3.5" /> Print / Save as PDF
           </button>
         ) : (

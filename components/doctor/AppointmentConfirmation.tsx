@@ -69,7 +69,7 @@ export function AppointmentConfirmation({ appointment, confirmationMessage, doct
           <button
             onClick={startCall}
             disabled={calling || called}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-black disabled:opacity-60"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-accent-fg disabled:opacity-60"
           >
             {calling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PhoneCall className="h-3.5 w-3.5" />}
             {called ? "Calling you now…" : calling ? "Starting call…" : "Start Call"}

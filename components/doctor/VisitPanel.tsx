@@ -82,7 +82,7 @@ export function VisitPanel({ consultationId, accessToken, patientLabel, symptoms
       <button
         onClick={finish}
         disabled={!!busy}
-        className="flex items-center justify-center gap-1.5 self-start rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black disabled:opacity-60"
+        className="flex items-center justify-center gap-1.5 self-start rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg disabled:opacity-60"
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
         {busy === "ending" ? "Saving notes…" : busy === "drafting" ? "Drafting prescription (up to a minute)…" : "End visit & draft prescription"}

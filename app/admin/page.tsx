@@ -106,7 +106,7 @@ function AdminHub() {
   ];
 
   return (
-    <div className="min-h-screen bg-bg-base">
+    <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b border-border bg-bg-base/85 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4 sm:px-6">
           <a href="/" className="flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" aria-label="Ostrix home">

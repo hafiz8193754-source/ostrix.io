@@ -119,7 +119,7 @@ export function VoiceNotes({ appointmentId, accessToken, refreshSignal, onSent }
           <button onClick={() => setPending(null)} className="flex h-9 items-center gap-1 rounded-lg border border-border px-3 text-xs text-text-secondary">
             <Trash2 className="h-3.5 w-3.5" /> Discard
           </button>
-          <button data-testid="voice-note-send" onClick={send} disabled={sending} className="flex h-9 items-center gap-1 rounded-lg bg-accent px-3 text-xs font-medium text-black disabled:opacity-50">
+          <button data-testid="voice-note-send" onClick={send} disabled={sending} className="flex h-9 items-center gap-1 rounded-lg bg-accent px-3 text-xs font-medium text-accent-fg disabled:opacity-50">
             {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />} Send
           </button>
         </div>

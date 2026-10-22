@@ -137,7 +137,7 @@ export function PaymentsPanel({ session, onUnauthorized, onCountsChange }: Panel
             )}
             {!loading &&
               payments.map((p) => (
-                <article key={p.id} data-testid="admin-payment" className="flex flex-col gap-3 rounded-xl border border-border bg-bg-surface p-4 text-sm shadow-sm">
+                <article key={p.id} data-testid="admin-payment" className="flex flex-col gap-3 rounded-2xl border border-border bg-bg-surface shadow-card p-4 text-sm shadow-sm">
                   <div className="flex items-start gap-3">
                     <InitialsAvatar name={p.patient_name || "Patient"} />
                     <div className="min-w-0 flex-1">
@@ -228,7 +228,7 @@ export function PaymentsPanel({ session, onUnauthorized, onCountsChange }: Panel
           <button
             onClick={saveBank}
             disabled={saving}
-            className="flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2.5 text-sm font-semibold text-black hover:bg-accent-hover disabled:opacity-60"
+            className="flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2.5 text-sm font-semibold text-accent-fg hover:bg-accent-hover disabled:opacity-60"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />} Save bank details
           </button>

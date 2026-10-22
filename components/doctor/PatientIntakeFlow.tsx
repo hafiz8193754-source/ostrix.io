@@ -212,7 +212,7 @@ export function PatientIntakeFlow({ accessToken, onComplete }: PatientIntakeFlow
               className={inputClass}
             />
             <VoiceRecordButton accessToken={accessToken} onTranscribed={(t) => setWhatsWrongDraft((d) => (d ? `${d} ${t}` : t))} />
-            <button onClick={submitWhatsWrong} disabled={!whatsWrongDraft.trim()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-40">
+            <button onClick={submitWhatsWrong} disabled={!whatsWrongDraft.trim()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-accent-fg disabled:cursor-not-allowed disabled:opacity-40">
               Send
             </button>
           </div>
@@ -234,7 +234,7 @@ export function PatientIntakeFlow({ accessToken, onComplete }: PatientIntakeFlow
               className={inputClass}
             />
             <VoiceRecordButton accessToken={accessToken} onTranscribed={(t) => setDurationDraft((d) => (d ? `${d} ${t}` : t))} />
-            <button onClick={submitDuration} disabled={!durationDraft.trim()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-40">
+            <button onClick={submitDuration} disabled={!durationDraft.trim()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-accent-fg disabled:cursor-not-allowed disabled:opacity-40">
               Send
             </button>
           </div>
@@ -281,7 +281,7 @@ export function PatientIntakeFlow({ accessToken, onComplete }: PatientIntakeFlow
           <div className="flex max-w-[560px] items-center gap-2">
             <input autoFocus value={conditionsDraft} onChange={(e) => setConditionsDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitConditions()} placeholder="e.g. diabetes, high blood pressure" className={inputClass} />
             <VoiceRecordButton accessToken={accessToken} onTranscribed={(t) => setConditionsDraft((d) => (d ? `${d} ${t}` : t))} />
-            <button onClick={() => submitConditions()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-black">
+            <button onClick={() => submitConditions()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-accent-fg">
               Send
             </button>
           </div>
@@ -298,7 +298,7 @@ export function PatientIntakeFlow({ accessToken, onComplete }: PatientIntakeFlow
           <div className="flex max-w-[560px] items-center gap-2">
             <input autoFocus value={medicinesDraft} onChange={(e) => setMedicinesDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitMedicines()} placeholder="e.g. Panadol, Augmentin" className={inputClass} />
             <VoiceRecordButton accessToken={accessToken} onTranscribed={(t) => setMedicinesDraft((d) => (d ? `${d} ${t}` : t))} />
-            <button onClick={() => submitMedicines()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-black">
+            <button onClick={() => submitMedicines()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-accent-fg">
               Send
             </button>
           </div>
@@ -315,7 +315,7 @@ export function PatientIntakeFlow({ accessToken, onComplete }: PatientIntakeFlow
           <div className="flex max-w-[560px] items-center gap-2">
             <input autoFocus value={allergiesDraft} onChange={(e) => setAllergiesDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitAllergies()} placeholder="e.g. penicillin" className={inputClass} />
             <VoiceRecordButton accessToken={accessToken} onTranscribed={(t) => setAllergiesDraft((d) => (d ? `${d} ${t}` : t))} />
-            <button onClick={() => submitAllergies()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-black">
+            <button onClick={() => submitAllergies()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-accent-fg">
               Send
             </button>
           </div>
@@ -331,7 +331,7 @@ export function PatientIntakeFlow({ accessToken, onComplete }: PatientIntakeFlow
           <Bubble>What is your age?</Bubble>
           <div className="flex max-w-[560px] items-center gap-2">
             <input autoFocus value={ageDraft} onChange={(e) => setAgeDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitAge()} inputMode="numeric" placeholder="e.g. 34, or '2 months' for an infant" className={inputClass} />
-            <button onClick={submitAge} disabled={!ageDraft.trim()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-40">
+            <button onClick={submitAge} disabled={!ageDraft.trim()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-accent-fg disabled:cursor-not-allowed disabled:opacity-40">
               Send
             </button>
           </div>

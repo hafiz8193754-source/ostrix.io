@@ -190,7 +190,7 @@ export default function DoctorDashboard() {
         <Stethoscope className="h-10 w-10 text-text-muted" />
         <h1 className="font-display text-xl font-bold text-text-primary">You're not registered as a doctor yet</h1>
         <p className="max-w-md text-sm text-text-secondary">Register your PMDC number to receive patient bookings and manage prescriptions.</p>
-        <button onClick={() => router.push("/doctor/register")} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black">
+        <button onClick={() => router.push("/doctor/register")} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg">
           Register now
         </button>
       </div>
@@ -269,7 +269,7 @@ export default function DoctorDashboard() {
                           <Link
                             href={`/visit/${a.id}`}
                             data-testid="join-video-visit"
-                            className="flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-black"
+                            className="flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-fg"
                           >
                             <Video className="h-3 w-3" /> Join video visit
                           </Link>

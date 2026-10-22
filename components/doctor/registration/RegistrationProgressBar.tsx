@@ -15,7 +15,7 @@ export function RegistrationProgressBar({ step }: { step: number }) {
               <div
                 className={cn(
                   "flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-medium",
-                  state === "done" && "bg-accent text-black",
+                  state === "done" && "bg-accent text-accent-fg",
                   state === "active" && "border-2 border-accent text-accent",
                   state === "upcoming" && "border border-border text-text-muted"
                 )}

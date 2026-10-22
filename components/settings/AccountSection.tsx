@@ -126,7 +126,7 @@ export function AccountSection({ accessToken, userEmail, profile, onSave }: Acco
               placeholder="Display name"
               className="h-9 flex-1 rounded-md border border-border bg-bg-elevated px-3 text-sm text-text-primary outline-none focus-visible:border-accent"
             />
-            <button onClick={handleSaveName} disabled={saving} className="h-9 shrink-0 rounded-md bg-accent px-3 text-xs font-medium text-black disabled:opacity-50">
+            <button onClick={handleSaveName} disabled={saving} className="h-9 shrink-0 rounded-md bg-accent px-3 text-xs font-medium text-accent-fg disabled:opacity-50">
               {saved ? "Saved" : "Save"}
             </button>
           </div>

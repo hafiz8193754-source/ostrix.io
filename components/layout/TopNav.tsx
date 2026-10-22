@@ -12,7 +12,7 @@ interface TopNavProps {
 
 export function TopNav({ onToggleSidebar, accessToken }: TopNavProps) {
   return (
-    <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-border bg-bg-surface px-3 sm:px-4">
+    <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-border bg-bg-surface/80 px-3 backdrop-blur sm:px-4">
       <div className="flex items-center gap-2">
         <button
           type="button"

@@ -377,7 +377,7 @@ export default function VisitRoomPage() {
                 </span>
               </label>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <button data-testid="join-video" onClick={() => join(true)} disabled={phase === "joining"} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-black disabled:opacity-50">
+                <button data-testid="join-video" onClick={() => join(true)} disabled={phase === "joining"} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-accent-fg disabled:opacity-50">
                   {phase === "joining" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />} Join with video
                 </button>
                 <button data-testid="join-audio" onClick={() => join(false)} disabled={phase === "joining"} className="flex h-11 items-center justify-center gap-2 rounded-lg border border-accent px-4 text-sm font-medium text-accent disabled:opacity-50">

@@ -103,7 +103,7 @@ export function Segmented<T extends string>({
               {t.count !== undefined && (
                 <span
                   className={`min-w-[1.25rem] rounded-full px-1.5 py-px text-center text-[10px] font-semibold tabular-nums ${
-                    active ? "bg-accent text-black" : "bg-bg-overlay text-text-secondary"
+                    active ? "bg-accent text-accent-fg" : "bg-bg-overlay text-text-secondary"
                   }`}
                 >
                   {t.count}
@@ -125,7 +125,7 @@ export function RowSkeletons({ rows = 3 }: { rows?: number }) {
   return (
     <div className="flex flex-col gap-2" role="status" aria-label="Loading">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 rounded-xl border border-border bg-bg-surface p-3.5">
+        <div key={i} className="flex items-center gap-3 rounded-2xl border border-border bg-bg-surface shadow-card p-3.5">
           <Skeleton className="h-10 w-10 rounded-full" />
           <div className="flex flex-1 flex-col gap-2">
             <Skeleton className="h-3.5 w-2/3" />

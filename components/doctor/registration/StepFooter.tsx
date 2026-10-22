@@ -24,7 +24,7 @@ export function StepFooter({ onBack, onNext, canContinue, nextLabel = "Continue"
         type="button"
         onClick={onNext}
         disabled={!canContinue || loading}
-        className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-accent-fg disabled:cursor-not-allowed disabled:opacity-50"
       >
         {loading && <Loader2 className="h-4 w-4 animate-spin" />} {nextLabel}
       </button>

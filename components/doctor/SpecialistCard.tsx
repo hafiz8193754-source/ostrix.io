@@ -22,7 +22,11 @@ const URGENCY_META: Record<Urgency, { label: string; dot: string }> = {
 };
 
 export function SpecialistCard({ specializationDisplay, specializationUrdu, urgency, reasoning, redFlags, questionsToAskDoctor }: SpecialistCardProps) {
-  const meta = URGENCY_META[urgency];
+  // The model sometimes returns an urgency outside the enum (e.g. "Urgent", "moderate"); never crash the page on it.
+  const key = String(urgency || "").toLowerCase().trim() as Urgency;
+  const meta = URGENCY_META[key] || (/emerg|immediate/.test(key) ? URGENCY_META.emergency : /urgent|today/.test(key) ? URGENCY_META.urgent : URGENCY_META.soon);
+  redFlags = Array.isArray(redFlags) ? redFlags : [];
+  questionsToAskDoctor = Array.isArray(questionsToAskDoctor) ? questionsToAskDoctor : [];
   return (
     <div className="flex max-w-[560px] flex-col gap-3 rounded-2xl border border-border bg-bg-surface p-5">
       <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Suggested Specialist</p>

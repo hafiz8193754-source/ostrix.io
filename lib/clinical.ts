@@ -305,7 +305,7 @@ export async function getAppointmentWithParties(
 export async function listDoctorAppointmentsToday(
   db: SupabaseClient,doctorId: string): Promise<Appointment[]> {
   const admin = db;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = pkToday();
   const { data, error } = await admin
     .from("appointments")
     .select("*")
@@ -314,6 +314,91 @@ export async function listDoctorAppointmentsToday(
     .order("appointment_time", { ascending: true });
   if (error) return [];
   return (data || []) as Appointment[];
+}
+
+// Pakistan clinic day (Asia/Karachi), so evening bookings don't fall on the UTC "yesterday".
+export function pkToday(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi" }).format(new Date());
+}
+
+export type UpcomingAppointment = Appointment & {
+  patient_name: string | null;
+  patient_phone: string | null;
+  patient_age: number | null;
+  patient_gender: string | null;
+  open_consultation_id: string | null;
+};
+
+// Every active booking from today onward (not just today) so future bookings
+// are visible to the doctor, with the patient's name and any visit already in progress.
+export async function listDoctorUpcomingAppointments(db: SupabaseClient, doctorId: string): Promise<UpcomingAppointment[]> {
+  const { data, error } = await db
+    .from("appointments")
+    .select("*")
+    .eq("doctor_id", doctorId)
+    .gte("appointment_date", pkToday())
+    .in("status", ["pending", "confirmed", "in_progress"])
+    .order("appointment_date", { ascending: true })
+    .order("appointment_time", { ascending: true })
+    .limit(50);
+  if (error || !data?.length) return [];
+  const patientIds = Array.from(new Set(data.map((a) => a.patient_id)));
+  const apptIds = data.map((a) => a.id);
+  const [{ data: patients }, { data: consults }] = await Promise.all([
+    db.from("patients").select("id, full_name, phone, age, gender").in("id", patientIds),
+    db.from("consultations").select("id, appointment_id, created_at").in("appointment_id", apptIds).order("created_at", { ascending: false }),
+  ]);
+  return (data as Appointment[]).map((a) => {
+    const p = (patients || []).find((x) => x.id === a.patient_id);
+    const c = (consults || []).find((x) => x.appointment_id === a.id);
+    return {
+      ...a,
+      patient_name: p?.full_name ?? null,
+      patient_phone: p?.phone ?? null,
+      patient_age: p?.age ?? null,
+      patient_gender: p?.gender ?? null,
+      open_consultation_id: c?.id ?? null,
+    };
+  });
+}
+
+// Reuses the latest consultation for an appointment instead of creating a
+// duplicate every time the doctor presses Start/Call.
+export async function getOrCreateConsultation(
+  db: SupabaseClient,
+  appointmentId: string,
+  doctorId: string,
+  patientId: string
+): Promise<Consultation | null> {
+  const { data: existing } = await db
+    .from("consultations")
+    .select("*")
+    .eq("appointment_id", appointmentId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existing) return existing as Consultation;
+  return createConsultation(db, appointmentId, doctorId, patientId);
+}
+
+// Patient-side view: their appointments (with doctor) and approved prescriptions.
+export async function listPatientCare(db: SupabaseClient, userId: string) {
+  const { data: patient } = await db.from("patients").select("*").eq("user_id", userId).maybeSingle();
+  if (!patient) return { patient: null, appointments: [], prescriptions: [], doctors: [] };
+  const [{ data: appointments }, { data: prescriptions }] = await Promise.all([
+    db.from("appointments").select("*").eq("patient_id", patient.id).order("appointment_date", { ascending: false }).order("appointment_time", { ascending: false }).limit(50),
+    db.from("prescriptions").select("*").eq("patient_id", patient.id).eq("status", "approved").order("created_at", { ascending: false }).limit(50),
+  ]);
+  const doctorIds = Array.from(new Set([...(appointments || []).map((a) => a.doctor_id), ...(prescriptions || []).map((p) => p.doctor_id)]));
+  const { data: doctors } = doctorIds.length
+    ? await db.from("doctors").select("id, user_id, full_name, specialization, qualifications, pmdc_number, clinic_name, clinic_address, city, phone, signature_url").in("id", doctorIds)
+    : { data: [] };
+  return {
+    patient: patient as Patient,
+    appointments: (appointments || []) as Appointment[],
+    prescriptions: (prescriptions || []) as Prescription[],
+    doctors: (doctors || []) as Doctor[],
+  };
 }
 
 // ---------- Consultations (the call/visit record) ----------
@@ -550,9 +635,10 @@ export async function uploadPrescriptionPdf(
 
 export async function getDashboardData(
   db: SupabaseClient,doctorId: string) {
-  const [todaysAppointments, pendingPrescriptions] = await Promise.all([
+  const [todaysAppointments, pendingPrescriptions, upcomingAppointments] = await Promise.all([
     listDoctorAppointmentsToday(db, doctorId),
     listPendingPrescriptions(db, doctorId),
+    listDoctorUpcomingAppointments(db, doctorId),
   ]);
   const admin = db;
   const { data: recentConsultations } = await admin
@@ -561,7 +647,7 @@ export async function getDashboardData(
     .eq("doctor_id", doctorId)
     .order("created_at", { ascending: false })
     .limit(10);
-  return { todaysAppointments, pendingPrescriptions, recentConsultations: (recentConsultations || []) as Consultation[] };
+  return { todaysAppointments, upcomingAppointments, pendingPrescriptions, recentConsultations: (recentConsultations || []) as Consultation[] };
 }
 
 // ---------- Weekly schedule & availability exceptions ----------
@@ -782,7 +868,7 @@ export async function drainNotifyRequests(): Promise<number> {
         "doctor_available",
         `Dr. ${doctor.full_name} is now available`,
         "They're online now — book your appointment before the slot fills up.",
-        "/studio"
+        "/my-care"
       );
       await admin.from("doctor_notify_requests").update({ notified: true }).eq("id", req.id);
       notifiedCount++;

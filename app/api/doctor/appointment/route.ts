@@ -93,7 +93,7 @@ export async function PATCH(request: Request) {
         "appointment_updated",
         "Appointment updated",
         `The visit on ${parties.appointment.appointment_date} is now ${parsed.data.status.replace(/_/g, " ")}.`,
-        isDoctor ? "/studio" : "/doctor/dashboard"
+        isDoctor ? "/my-care" : "/doctor/dashboard"
       );
     } catch {
       // Status change stands even if the other party can't be notified yet.

@@ -4,7 +4,7 @@ import { callEndSchema } from "@/lib/schemas";
 import { getConsultation, endCall, logClinicalAudit } from "@/lib/clinical";
 import { generateVisitSummary } from "@/lib/clinicalAI";
 
-export const maxDuration = 90;
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
   const guard = await requireVerifiedDoctor(request);

@@ -131,13 +131,13 @@ export function ScheduleManager({ accessToken }: ScheduleManagerProps) {
   const preview = next14DaysPreview(rows, exceptions);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
       <div className="flex flex-col gap-2">
         {rows.map((row, i) => (
           <div
             key={row.day_of_week}
             className={cn(
-              "grid grid-cols-[56px_1fr_1fr_1fr_1fr] items-center gap-2 rounded-lg border px-3 py-2",
+              "grid grid-cols-2 items-center gap-2 rounded-lg border px-3 py-2 sm:grid-cols-[56px_1fr_1fr_1fr_1fr] [&>*]:min-w-0 [&_select]:w-full [&_input]:w-full",
               row.enabled ? "border-border bg-bg-elevated" : "border-border-subtle bg-bg-base opacity-60"
             )}
           >
@@ -192,7 +192,7 @@ export function ScheduleManager({ accessToken }: ScheduleManagerProps) {
         {savedMsg && <span className="text-xs text-emerald-600">Saved.</span>}
       </div>
 
-      <div className="rounded-lg border border-border bg-bg-elevated p-3">
+      <div className="min-w-0 rounded-lg border border-border bg-bg-elevated p-3">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Next 14 days</p>
         <div className="flex gap-1.5 overflow-x-auto pb-1">
           {preview.map((d) => (

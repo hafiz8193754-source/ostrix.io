@@ -76,10 +76,21 @@ export default function AdminDoctorsPage() {
   function handleReviewed(updated: Doctor) {
     setDoctors((ds) => ds.filter((d) => d.id !== updated.id));
     setSelectedId(null);
-    setCounts((c) => ({ ...c, [tab]: Math.max(0, c[tab] - 1) }));
+    setCounts((c) => ({
+      ...c,
+      [tab]: Math.max(0, c[tab] - 1),
+      [updated.registration_status]: (c[updated.registration_status] || 0) + (updated.registration_status === tab ? 0 : 1),
+    }));
   }
 
-  if (session === undefined || authorized === null || authorized === false) return null;
+  if (authorized === false)
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-2 px-6 text-center">
+        <h1 className="font-display text-xl font-bold text-text-primary">Admins only</h1>
+        <p className="text-sm text-text-secondary">This account doesn&apos;t have admin access.</p>
+      </div>
+    );
+  if (session === undefined || authorized === null) return null;
 
   const selected = doctors.find((d) => d.id === selectedId) || null;
 

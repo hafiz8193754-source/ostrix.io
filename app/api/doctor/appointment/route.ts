@@ -4,6 +4,11 @@ import { appointmentBookingSchema, appointmentUpdateSchema } from "@/lib/schemas
 import { getOrCreatePatientForUser, createAppointment, getDoctorById, getAppointmentWithParties, updateAppointmentStatus, logClinicalAudit } from "@/lib/clinical";
 import { createNotification } from "@/lib/notifications";
 
+// Stored names often already include "Dr." (the registration placeholder does).
+function doctorTitle(fullName: string): string {
+  return `Dr. ${fullName.replace(/^dr\.?\s+/i, "")}`;
+}
+
 export async function POST(request: Request) {
   const auth = await getUserFromRequest(request);
   if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
@@ -55,8 +60,8 @@ export async function POST(request: Request) {
     appointment,
     confirmation_message:
       appointment.fee_pkr > 0
-        ? `Booked with Dr. ${doctor.full_name} on ${date} at ${time}. Please pay the PKR ${appointment.fee_pkr.toLocaleString()} fee by bank transfer from My care — your booking is confirmed once the transfer is verified.`
-        : `Booked with Dr. ${doctor.full_name} on ${date} at ${time}. The clinic will confirm via WhatsApp/phone shortly.`,
+        ? `Booked with ${doctorTitle(doctor.full_name)} on ${date} at ${time}. Please pay the PKR ${appointment.fee_pkr.toLocaleString()} fee by bank transfer from My care — your booking is confirmed once the transfer is verified.`
+        : `Booked with ${doctorTitle(doctor.full_name)} on ${date} at ${time}. The clinic will confirm via WhatsApp/phone shortly.`,
   });
 }
 

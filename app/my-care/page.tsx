@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Session as SupabaseSession } from "@supabase/supabase-js";
-import { ArrowLeft, CalendarDays, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, FileText, Loader2, MessageSquare, Stethoscope, Video } from "lucide-react";
 
 import { supabase } from "@/lib/supabaseClient";
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
@@ -87,7 +87,12 @@ export default function MyCarePage() {
           <ArrowLeft className="h-4 w-4" /> Back to assistant
         </Link>
       </div>
-      <h1 className="font-display text-2xl font-bold text-text-primary">My care</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="font-display text-2xl font-bold text-text-primary">My care</h1>
+        <Link href="/triage" data-testid="find-doctor" className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-black">
+          <Stethoscope className="h-4 w-4" /> Find a doctor for my symptoms
+        </Link>
+      </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
       {!care && !error && <Loader2 className="h-5 w-5 animate-spin text-text-muted" />}
@@ -100,7 +105,7 @@ export default function MyCarePage() {
             </h2>
             {care.appointments.length === 0 ? (
               <p className="text-sm text-text-muted">
-                No appointments yet. Describe your symptoms in the <Link href="/studio" className="text-accent">assistant</Link> to find a doctor.
+                No appointments yet. <Link href="/triage" className="text-accent">Describe your symptoms</Link> to find the right doctor.
               </p>
             ) : (
               <div className="flex flex-col gap-2">
@@ -128,6 +133,18 @@ export default function MyCarePage() {
                         )}
                       </div>
                     </div>
+                    {["pending", "confirmed", "in_progress"].includes(a.status) && (
+                      <div className="flex flex-wrap gap-2">
+                        {a.type === "online" && (
+                          <Link data-testid="join-video-visit" href={`/visit/${a.id}`} className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-black">
+                            <Video className="h-3.5 w-3.5" /> Join video visit
+                          </Link>
+                        )}
+                        <Link href={`/visit/${a.id}#notes`} className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary">
+                          <MessageSquare className="h-3.5 w-3.5" /> Voice messages
+                        </Link>
+                      </div>
+                    )}
                     {showPay && session && (
                       <BankTransferPanel
                         appointment={a}

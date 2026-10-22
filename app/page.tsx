@@ -8,23 +8,25 @@ import {
 import { BRAND } from "@/lib/brand";
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
 import { Button } from "@/components/ui/button";
+import { LICENSING_NOTE } from "@/lib/company";
+import { CompanyInfo } from "@/components/home/CompanyInfo";
 import { HeaderActions, QuickActions } from "@/components/home/QuickActions";
 
 const DESCRIPTION =
-  "Ostrix offers online doctor consultations in Pakistan. Describe your symptoms, get matched to the right PMDC-verified specialist, consult by in-app video or audio, and receive a prescription your doctor has reviewed and digitally signed.";
+  "Ostrix offers online doctor consultations, anywhere in the world. Describe your symptoms, get matched to the right PMDC-registered specialist, consult by in-app video or audio, and receive a prescription your doctor has reviewed and digitally signed.";
 
 export const metadata: Metadata = {
-  title: `${BRAND.name} — Online doctor consultations in Pakistan`,
+  title: `${BRAND.name} — Online doctor consultations, anywhere in the world`,
   description: DESCRIPTION,
-  keywords: ["online doctor Pakistan", "telehealth", "PMDC verified doctor", "e-prescription", "video consultation"],
+  keywords: ["online doctor", "online doctor consultation", "telehealth", "online doctor Pakistan", "PMDC verified doctor", "e-prescription", "video consultation"],
   openGraph: {
     title: `${BRAND.name} — See a PMDC-verified doctor from home`,
     description: DESCRIPTION,
     type: "website",
     siteName: BRAND.name,
-    locale: "en_PK",
+    locale: "en_US",
   },
-  twitter: { card: "summary", title: `${BRAND.name} — Online doctor consultations in Pakistan`, description: DESCRIPTION },
+  twitter: { card: "summary", title: `${BRAND.name} — Online doctor consultations, anywhere in the world`, description: DESCRIPTION },
 };
 
 const STEPS = [
@@ -44,7 +46,8 @@ const FEATURES = [
 const FAQS = [
   { q: "Is the AI my doctor?", a: "No. AI helps organise your symptoms, suggest the right specialist and prepare a draft — but a licensed, PMDC-verified doctor reviews, edits and signs every prescription. No prescription is issued without your doctor's signature." },
   { q: "How do I pay?", a: "For now, payment is by bank transfer. After booking you'll see the account details; upload your transfer receipt and our team confirms it. Card payments are coming later." },
-  { q: "What if it's an emergency?", a: "Ostrix is not for emergencies. If you have chest pain, difficulty breathing, severe bleeding, signs of stroke or any life-threatening symptoms, call 1122 or go to the nearest emergency department immediately." },
+  { q: "What if it's an emergency?", a: "Ostrix is not for emergencies. If you have chest pain, difficulty breathing, severe bleeding, signs of stroke or any life-threatening symptoms, call your local emergency number (1122 in Pakistan) or go to the nearest emergency department immediately." },
+  { q: "Where are the doctors licensed? Can I use Ostrix outside Pakistan?", a: LICENSING_NOTE + " You can consult from anywhere with an internet connection." },
   { q: "Which devices work?", a: "Any modern browser on a phone, tablet or computer. For calls, allow microphone (and camera for video) access when asked." },
   { q: "How can a pharmacy check my prescription?", a: "Each signed prescription carries a verification code. The pharmacy can open the verify link to confirm it's genuine and unchanged." },
   { q: "I'm a doctor — can I join?", a: "Yes. Register with your PMDC number and credentials. Our team verifies your details before your profile goes live." },
@@ -140,7 +143,7 @@ export default function Landing() {
           <div className="relative mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[1.1fr_1fr]">
             <div className="home-reveal">
               <p className="inline-flex items-center gap-2 rounded-full border border-accent/20 bg-bg-surface/80 px-3 py-1.5 text-xs font-semibold text-accent shadow-card backdrop-blur">
-                <BadgeCheck className="h-3.5 w-3.5" aria-hidden /> PMDC-verified doctors · Made for Pakistan
+                <BadgeCheck className="h-3.5 w-3.5" aria-hidden /> PMDC-registered doctors · Online, worldwide
               </p>
               <h1 className="font-display mt-6 text-[2.6rem] font-extrabold leading-[1.02] sm:text-6xl xl:text-[4.25rem]">
                 A real doctor,<br /><span className="text-gradient whitespace-nowrap">right from home.</span>
@@ -162,8 +165,9 @@ export default function Landing() {
                 <li className="flex items-center gap-1.5"><Check className="h-4 w-4 text-accent" aria-hidden /> English, اردو, Roman Urdu</li>
               </ul>
               <p className="mt-5 inline-flex items-center gap-2 rounded-lg bg-warm-soft px-3 py-2 text-xs text-text-secondary">
-                <Siren className="h-3.5 w-3.5 text-warm-strong" aria-hidden /> Emergency? Call <a href="tel:1122" className="font-semibold text-warm-strong underline">1122</a> — Ostrix is not for emergencies.
+                <Siren className="h-3.5 w-3.5 text-warm-strong" aria-hidden /> Emergency? Call your local emergency number (<a href="tel:1122" className="font-semibold text-warm-strong underline">1122</a> in Pakistan). Ostrix is not for emergencies.
               </p>
+              <p className="mt-3 max-w-xl text-xs leading-relaxed text-text-muted">{LICENSING_NOTE}</p>
               <QuickActions />
             </div>
             <HeroMock />
@@ -303,7 +307,9 @@ export default function Landing() {
         <div className="mx-auto flex max-w-6xl flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <OstrixLogo size="sm" withWordmark />
-            <p className="mt-3 max-w-xs text-sm text-text-muted">Online doctor consultations in Pakistan. Not for emergencies: call 1122.</p>
+            <p className="mt-3 max-w-xs text-sm text-text-muted">Online doctor consultations, anywhere in the world. Not for emergencies: call your local emergency number (1122 in Pakistan).</p>
+            <p className="mt-2 max-w-xs text-xs text-text-muted">Doctors are PMDC-registered and licensed in Pakistan.</p>
+            <CompanyInfo className="mt-4 max-w-xs" />
           </div>
           <nav aria-label="Footer" className="grid grid-cols-2 gap-x-10 gap-y-2.5 text-sm text-text-secondary sm:grid-cols-3">
             <Link href="/triage" className="hover:text-accent">Check symptoms</Link>
@@ -311,6 +317,7 @@ export default function Landing() {
             <Link href="/my-care" className="hover:text-accent">My care</Link>
             <Link href="/login" className="hover:text-accent">Sign in</Link>
             <Link href="/doctor/register" className="hover:text-accent">For doctors</Link>
+            <Link href="/about" className="hover:text-accent">About Ostrix</Link>
             <a href="#faq" className="hover:text-accent">FAQ</a>
           </nav>
         </div>

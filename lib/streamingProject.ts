@@ -1,4 +1,4 @@
-// Turns raw token deltas (as they arrive from streamClaude) into live
+// Turns raw token deltas (as they arrive from streamComplete) into live
 // file-start/file-delta/file-done events, using the same ===FILE: path===
 // / ===END=== markers lib/siteFiles.ts's parseFiles/parseProject already
 // parse from a complete string. This parser only has to be "good enough for

@@ -32,7 +32,7 @@ export function readPhoto(file: File, maxDimension = 1024): Promise<ResizedPhoto
   });
 }
 
-// For non-image uploads (PDFs) headed to Claude as native document blocks —
+// For non-image uploads (PDFs) headed to the AI client as document blocks —
 // no resizing possible, just base64-encode as-is.
 export function readFileAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

@@ -1,7 +1,7 @@
-// Takes errors from the sandbox, sends them to Claude with the current files,
-// and returns corrected files. Reuses the shared ===FILE:=== parser/merger
+// Takes errors from the sandbox, sends them to the AI client with the current
+// files, and returns corrected files. Reuses the shared ===FILE:=== parser/merger
 // from lib/siteFiles.ts instead of duplicating that logic.
-import { claude } from "@/lib/anthropic";
+import { complete } from "@/lib/ai";
 import { parseFiles, mergeFiles } from "@/lib/siteFiles";
 import type { SiteFile } from "@/types";
 
@@ -24,7 +24,7 @@ export async function autoFix(files: SiteFile[], errors: string[], maxAttempts =
     const filesContext = current.map((f) => `===FILE: ${f.path}===\n${f.content}`).join("\n\n");
     const errorContext = remainingErrors.join("\n");
 
-    const raw = await claude({
+    const raw = await complete({
       system: FIX_SYSTEM,
       content: `ERRORS:\n${errorContext}\n\nCURRENT FILES:\n${filesContext}`,
       maxTokens: 8000,

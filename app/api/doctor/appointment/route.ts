@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { paymentGateError } from "@/lib/paymentGate";
 import { getUserFromRequest } from "@/lib/serverAuth";
 import { appointmentBookingSchema, appointmentUpdateSchema } from "@/lib/schemas";
 import { getOrCreatePatientForUser, createAppointment, getDoctorById, getAppointmentWithParties, updateAppointmentStatus, logClinicalAudit } from "@/lib/clinical";
@@ -88,6 +89,11 @@ export async function PATCH(request: Request) {
   const allowed = isDoctor ? DOCTOR_STATUSES : PATIENT_STATUSES;
   if (!allowed.has(parsed.data.status))
     return NextResponse.json({ error: "You can't set that appointment status." }, { status: 403 });
+
+  if (isDoctor) {
+    const gate = paymentGateError(parties.appointment, parsed.data.status);
+    if (gate) return NextResponse.json({ error: gate.error, code: "payment_pending" }, { status: gate.status });
+  }
 
   const appointment = await updateAppointmentStatus(db, parsed.data.appointment_id, parsed.data.status);
   if (!appointment) return NextResponse.json({ error: "Could not update the appointment." }, { status: 500 });

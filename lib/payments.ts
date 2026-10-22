@@ -109,7 +109,7 @@ export async function reviewPayment(
     .single();
   if (error || !updated) return { error: "Could not update the payment.", status: 500 };
 
-  const { data: appt } = await admin.from("appointments").select("id, status, appointment_date, appointment_time").eq("id", payment.appointment_id).maybeSingle();
+  const { data: appt } = await admin.from("appointments").select("id, status, doctor_id, appointment_date, appointment_time").eq("id", payment.appointment_id).maybeSingle();
   if (appt) {
     const patch: Record<string, string> = { payment_status: approved ? "paid" : "rejected", updated_at: new Date().toISOString() };
     if (approved && appt.status === "pending") patch.status = "confirmed";
@@ -130,6 +130,22 @@ export async function reviewPayment(
       );
     } catch {
       // The review stands even if the notification fails.
+    }
+  }
+  if (approved && appt?.doctor_id) {
+    try {
+      const { data: doc } = await admin.from("doctors").select("user_id").eq("id", appt.doctor_id).maybeSingle();
+      if (doc?.user_id)
+        await createNotification(
+          admin,
+          doc.user_id,
+          "payment_approved",
+          "Patient payment approved",
+          `Payment for the visit on ${appt.appointment_date} at ${String(appt.appointment_time).slice(0, 5)} is approved. You can now start the visit.`,
+          "/doctor/dashboard"
+        );
+    } catch {
+      // The review stands even if the doctor can't be notified.
     }
   }
   return { payment: updated as Payment };

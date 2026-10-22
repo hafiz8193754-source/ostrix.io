@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { isPaymentCleared } from "@/lib/paymentGate";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Session as SupabaseSession } from "@supabase/supabase-js";
@@ -139,6 +140,7 @@ export default function DoctorDashboard() {
       body: JSON.stringify({ appointment_id: appointmentId, status }),
     });
     if (res.ok) await load();
+    else setCallError((await res.json().catch(() => ({}))).error || "Could not update the appointment.");
   }
 
   async function startVisit(a: UpcomingAppointment) {
@@ -252,14 +254,25 @@ export default function DoctorDashboard() {
                     <span className="rounded-full bg-bg-elevated px-2 py-0.5 text-xs capitalize text-text-secondary">{a.status.replace(/_/g, " ")}</span>
                     {isVerified && (
                       <>
+                        {!isPaymentCleared(a.payment_status) && (
+                          <span data-testid="payment-pending-badge" className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                            Payment pending
+                          </span>
+                        )}
                         {a.status === "pending" && (
-                          <button onClick={() => setAppointmentStatus(a.id, "confirmed")} className="text-xs font-medium text-accent">
+                          <button
+                            onClick={() => setAppointmentStatus(a.id, "confirmed")}
+                            disabled={!isPaymentCleared(a.payment_status)}
+                            title={isPaymentCleared(a.payment_status) ? undefined : "Waiting for admin to approve the patient's payment"}
+                            className="text-xs font-medium text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                          >
                             Confirm
                           </button>
                         )}
                         <button
                           onClick={() => startVisit(a)}
-                          disabled={startingId === a.id}
+                          disabled={startingId === a.id || !isPaymentCleared(a.payment_status)}
+                          title={isPaymentCleared(a.payment_status) ? undefined : "Waiting for admin to approve the patient's payment"}
                           className="flex items-center gap-1 rounded-full border border-accent px-2.5 py-0.5 text-xs font-medium text-accent disabled:opacity-60"
                         >
                           {startingId === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}

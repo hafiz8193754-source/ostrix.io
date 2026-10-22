@@ -240,11 +240,6 @@ export const deleteDataSchema = z.object({
 });
 export type DeleteDataInput = z.infer<typeof deleteDataSchema>;
 
-export const waitlistSchema = z.object({
-  email: z.string().trim().email("Enter a valid email address."),
-});
-export type WaitlistInput = z.infer<typeof waitlistSchema>;
-
 export const profileSchema = z.object({
   display_name: z.string().trim().min(1, "Display name can't be empty.").max(80, "Keep it under 80 characters."),
 });

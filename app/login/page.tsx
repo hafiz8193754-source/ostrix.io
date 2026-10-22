@@ -12,6 +12,15 @@ import { OstrixLogo } from "@/components/brand/OstrixLogo";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+/** Same-site return path only. Rejects protocol-relative and absolute URLs. */
+function sameSiteNext(): string {
+  const next = new URLSearchParams(window.location.search).get("next");
+  if (!next || !next.startsWith("/") || next.startsWith("//") || next.includes("\\") || next.includes("://")) {
+    return "/studio";
+  }
+  return next;
+}
+
 export default function Login() {
   const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -34,7 +43,7 @@ export default function Login() {
     const { data, error } = await fn;
     if (error) return setErr(error.message);
     if (mode === "signup" && !data.session) return setNotice("Check your email to confirm your account, then sign in.");
-    router.push("/studio");
+    router.push(sameSiteNext());
   }
 
   return (

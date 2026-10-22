@@ -43,7 +43,7 @@ export default function AdminPaymentsPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.replace("/login");
+      if (!data.session) router.replace(`/login?next=${encodeURIComponent("/admin/payments")}`);
       else setSession(data.session);
     });
   }, [router]);
@@ -87,10 +87,6 @@ export default function AdminPaymentsPage() {
   useEffect(() => {
     loadPayments();
   }, [loadPayments]);
-
-  useEffect(() => {
-    if (authorized === false) router.replace("/");
-  }, [authorized, router]);
 
   async function saveBank() {
     setSaving(true);

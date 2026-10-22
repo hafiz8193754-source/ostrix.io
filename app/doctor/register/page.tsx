@@ -34,7 +34,7 @@ export default function DoctorRegister() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.replace("/login");
+      if (!data.session) router.replace("/login?next=/doctor/register");
       else setSession(data.session);
     });
   }, [router]);

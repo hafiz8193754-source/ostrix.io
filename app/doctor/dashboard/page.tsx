@@ -108,7 +108,7 @@ export default function DoctorDashboard() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.replace("/login");
+      if (!data.session) router.replace("/login?next=/doctor/dashboard");
       else setSession(data.session);
     });
   }, [router]);

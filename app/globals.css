@@ -106,3 +106,16 @@ button {
 .font-mono-code {
   font-family: 'JetBrains Mono', Consolas, monospace;
 }
+
+/* ---------- Homepage motion (respects reduced motion) ---------- */
+@keyframes home-reveal { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes home-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.home-reveal { animation: home-reveal 0.6s cubic-bezier(.2,.7,.2,1) both; }
+.home-delay-1 { animation-delay: 0.15s; }
+.home-float { animation: home-float 4s ease-in-out infinite; }
+.home-card { transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
+.home-card:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 10px 30px -15px var(--accent-glow); }
+@media (prefers-reduced-motion: reduce) {
+  .home-reveal, .home-float { animation: none; }
+  .home-card, .home-card:hover { transition: none; transform: none; }
+}

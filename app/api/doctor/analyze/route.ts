@@ -7,7 +7,7 @@ import { searchDoctors, logClinicalAudit } from "@/lib/clinical";
 import { runPresenceSweep } from "@/lib/presenceSweep";
 import type { SymptomAnalysis, Urgency } from "@/types";
 
-export const maxDuration = 30;
+export const maxDuration = 90;
 
 const SPECIALIZATIONS = [
   "general_physician", "cardiologist", "dermatologist", "orthopedic", "gynecologist",
@@ -109,7 +109,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const raw = await complete({ system: SYSTEM, content: symptoms, maxTokens: 1200 });
+    // The patient is waiting in the studio intake chat. The fast model returns
+    // inside the function budget. Visit summaries and prescription drafts stay
+    // on XAI_MODEL.
+    const raw = await complete({ system: SYSTEM, content: symptoms, maxTokens: 1200, fast: true });
     const parsedAnalysis = extractJson<{
       specialization: string;
       urgency: Urgency;

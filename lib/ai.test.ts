@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  DEFAULT_XAI_FAST_MODEL,
   DEFAULT_XAI_MODEL,
   buildXaiRequest,
   extractJson,
@@ -11,7 +12,7 @@ import {
   type AiTool,
 } from "./ai";
 
-const ENV_KEYS = ["XAI_API_KEY", "XAI_MODEL", "ANTHROPIC_API_KEY", "CLAUDE_MODEL"] as const;
+const ENV_KEYS = ["XAI_API_KEY", "XAI_MODEL", "XAI_FAST_MODEL", "ANTHROPIC_API_KEY", "CLAUDE_MODEL"] as const;
 const previous: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>> = {};
 
 function setEnv(values: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>>) {
@@ -55,6 +56,20 @@ describe("resolveModel", () => {
     expect(DEFAULT_XAI_MODEL).toBe("grok-4.7");
     setEnv({ XAI_MODEL: "grok-4" });
     expect(resolveModel("xai")).toBe("grok-4");
+  });
+
+  it("uses the non-reasoning model for intake turns and leaves final analysis on XAI_MODEL", () => {
+    setEnv({ XAI_MODEL: "grok-4.7", XAI_FAST_MODEL: undefined });
+    expect(resolveModel("xai", { fast: true })).toBe(DEFAULT_XAI_FAST_MODEL);
+    expect(DEFAULT_XAI_FAST_MODEL).toBe("grok-4.20-0309-non-reasoning");
+    expect(resolveModel("xai")).toBe("grok-4.7");
+
+    setEnv({ XAI_FAST_MODEL: "  " });
+    expect(resolveModel("xai", { fast: true })).toBe(DEFAULT_XAI_FAST_MODEL);
+
+    setEnv({ XAI_MODEL: "grok-4.7", XAI_FAST_MODEL: "grok-fast-custom" });
+    expect(buildXaiRequest({ system: "s", content: "intake", maxTokens: 200, fast: true }, false).model).toBe("grok-fast-custom");
+    expect(buildXaiRequest({ system: "s", content: "final", maxTokens: 200 }, false).model).toBe("grok-4.7");
   });
 });
 

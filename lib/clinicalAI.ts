@@ -23,6 +23,7 @@ Return ONLY valid JSON:
 }`;
 
 export async function generateVisitSummary(db: SupabaseClient, consultationId: string, doctorNotes: string): Promise<unknown> {
+  // Final clinical write-up stays on XAI_MODEL (grok-4.7 unless overridden).
   const raw = await complete({ system: SUMMARY_SYSTEM, content: doctorNotes, maxTokens: 1200 });
   const summary = extractJson(raw);
   await saveVisitSummary(db, consultationId, JSON.stringify(summary));
@@ -85,6 +86,7 @@ export async function generatePrescriptionDraft(ctx: DraftContext): Promise<Pres
     .filter(Boolean)
     .join("\n");
 
+  // Final prescription draft stays on XAI_MODEL. Studio intake uses XAI_FAST_MODEL.
   const raw = await complete({
     system: PRESCRIPTION_SYSTEM,
     content,

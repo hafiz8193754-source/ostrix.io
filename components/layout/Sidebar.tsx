@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, MoreVertical, Pencil, Trash2, Check, X, Stethoscope, Settings as SettingsIcon } from "lucide-react";
+import { Plus, MoreVertical, Pencil, Trash2, Check, X, Stethoscope, Settings as SettingsIcon, ShieldCheck } from "lucide-react";
 
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabaseClient";
 import type { Session } from "@/types";
 
 interface SidebarProps {
@@ -65,6 +66,21 @@ export function Sidebar({
   onDeleteSession,
   onOpenSettings,
 }: SidebarProps) {
+  // Only platform admins get a 200 from the summary endpoint; everyone else
+  // never sees the Admin link (the API stays the real gate).
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getSession().then(async ({ data }) => {
+      const token = data.session?.access_token;
+      if (!token) return;
+      const res = await fetch("/api/admin/summary", { headers: { authorization: `Bearer ${token}` } }).catch(() => null);
+      if (!cancelled) setIsAdmin(!!res?.ok);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [userEmail]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
@@ -220,6 +236,15 @@ export function Sidebar({
         >
           <Stethoscope className="h-4 w-4" /> For doctors
         </a>
+        {isAdmin && (
+          <a
+            href="/admin"
+            data-testid="nav-admin"
+            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary"
+          >
+            <ShieldCheck className="h-4 w-4" /> Admin
+          </a>
+        )}
         <button
           onClick={onOpenSettings}
           className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary"

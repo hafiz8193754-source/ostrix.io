@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import { prescriptionHash, newVerifyCode } from "@/lib/signing";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -564,30 +564,97 @@ interface ReviewResult {
   prescription: Prescription;
 }
 
+export interface SignInput {
+  doctor: Doctor;
+  finalContent: PrescriptionData;
+  signaturePath: string | null;
+}
+
+// Signs and locks a prescription: content hash over the canonical payload,
+// a public verify code, and a snapshot of the signer (name, specialty, PMDC)
+// so the verify page keeps working even if the profile changes later. Only a
+// not-yet-signed row can be signed (the DB trigger also enforces the lock).
 export async function approvePrescription(
   db: SupabaseClient,
-  prescriptionId: string,
-  doctorId: string,
-  finalContent: PrescriptionData
+  prescription: Prescription,
+  input: SignInput
 ): Promise<ReviewResult | null> {
-  const admin = db;
   const signedAt = new Date().toISOString();
-  const signatureHash = createHash("sha256").update(`${doctorId}:${JSON.stringify(finalContent)}:${signedAt}`).digest("hex");
-  const { data, error } = await admin
+  const version = prescription.version ?? 1;
+  const pmdc = input.doctor.pmdc_number && !input.doctor.pmdc_number.startsWith("deleted-") ? input.doctor.pmdc_number : null;
+  const contentHash = prescriptionHash({
+    prescription_id: prescription.id,
+    version,
+    doctor_id: input.doctor.id,
+    pmdc_number: pmdc,
+    signed_at: signedAt,
+    content: input.finalContent,
+  });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data, error } = await db
+      .from("prescriptions")
+      .update({
+        status: "approved",
+        doctor_edited_prescription: input.finalContent,
+        final_prescription: input.finalContent,
+        doctor_signature_hash: contentHash,
+        content_hash: contentHash,
+        verify_code: newVerifyCode(),
+        doctor_signed_at: signedAt,
+        signed_by_doctor_id: input.doctor.id,
+        signed_doctor_name: input.doctor.full_name,
+        signed_doctor_specialty: input.doctor.specialization,
+        signed_pmdc_number: pmdc,
+        signature_path: input.signaturePath,
+        updated_at: signedAt,
+      })
+      .eq("id", prescription.id)
+      .in("status", ["draft", "pending_review", "revised"])
+      .select("*")
+      .maybeSingle();
+    if (data) {
+      if (prescription.supersedes_id) {
+        await db
+          .from("prescriptions")
+          .update({ status: "superseded", superseded_by: prescription.id, updated_at: signedAt })
+          .eq("id", prescription.supersedes_id);
+      }
+      return { prescription: data as Prescription };
+    }
+    if (!error || !String(error.message).includes("verify_code")) return null;
+  }
+  return null;
+}
+
+// A signed prescription can't be edited; this opens a new draft version that
+// supersedes it once signed. The old one stays valid until then.
+export async function createPrescriptionRevision(db: SupabaseClient, signed: Prescription): Promise<Prescription | null> {
+  const { data: existing } = await db
     .from("prescriptions")
-    .update({
-      status: "approved",
-      doctor_edited_prescription: finalContent,
-      final_prescription: finalContent,
-      doctor_signature_hash: signatureHash,
-      doctor_signed_at: signedAt,
-      updated_at: signedAt,
+    .select("*")
+    .eq("supersedes_id", signed.id)
+    .in("status", ["draft", "pending_review", "revised"])
+    .maybeSingle();
+  if (existing) return existing as Prescription;
+  const { data, error } = await db
+    .from("prescriptions")
+    .insert({
+      consultation_id: signed.consultation_id,
+      doctor_id: signed.doctor_id,
+      patient_id: signed.patient_id,
+      doctor_pmdc_number: signed.doctor_pmdc_number,
+      status: "revised",
+      ai_generated_prescription: signed.ai_generated_prescription,
+      doctor_edited_prescription: signed.final_prescription,
+      warnings: signed.warnings,
+      drug_interactions: signed.drug_interactions,
+      version: (signed.version ?? 1) + 1,
+      supersedes_id: signed.id,
     })
-    .eq("id", prescriptionId)
     .select("*")
     .single();
   if (error) return null;
-  return { prescription: data as Prescription };
+  return data as Prescription;
 }
 
 export async function rejectPrescription(
@@ -597,6 +664,7 @@ export async function rejectPrescription(
     .from("prescriptions")
     .update({ status: "rejected", rejection_reason: reason, updated_at: new Date().toISOString() })
     .eq("id", prescriptionId)
+    .in("status", ["draft", "pending_review", "revised"])
     .select("*")
     .single();
   if (error) return null;
@@ -610,6 +678,7 @@ export async function editPrescription(
     .from("prescriptions")
     .update({ status: "revised", doctor_edited_prescription: edited, updated_at: new Date().toISOString() })
     .eq("id", prescriptionId)
+    .in("status", ["draft", "pending_review", "revised"])
     .select("*")
     .single();
   if (error) return null;

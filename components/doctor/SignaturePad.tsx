@@ -25,20 +25,23 @@ export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(fu
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
     ctx.strokeStyle = "#1C1C1C";
   }, []);
 
   function pos(e: React.PointerEvent<HTMLCanvasElement>) {
-    const rect = canvasRef.current!.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    // Canvas is CSS-scaled to the container width on phones; map back to canvas pixels.
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    return { x: ((e.clientX - rect.left) * canvas.width) / rect.width, y: ((e.clientY - rect.top) * canvas.height) / rect.height };
   }
 
   function start(e: React.PointerEvent<HTMLCanvasElement>) {
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
     drawingRef.current = true;
+    canvasRef.current?.setPointerCapture?.(e.pointerId);
     const { x, y } = pos(e);
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -81,6 +84,8 @@ export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(fu
         onPointerMove={move}
         onPointerUp={end}
         onPointerLeave={end}
+        data-testid="signature-pad"
+        style={{ width: "100%", maxWidth: width, aspectRatio: `${width} / ${height}` }}
         className="touch-none rounded-lg border border-border bg-white"
       />
       <button

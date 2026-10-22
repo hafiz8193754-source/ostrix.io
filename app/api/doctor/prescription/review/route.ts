@@ -12,6 +12,7 @@ import {
   getAppointmentWithParties,
   uploadPrescriptionPdf,
   savePrescriptionPdfUrl,
+  createPrescriptionRevision,
 } from "@/lib/clinical";
 import { buildPrescriptionPdf } from "@/lib/prescriptionPdf";
 import { createNotification } from "@/lib/notifications";
@@ -35,12 +36,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "You are not authorized to review this prescription." }, { status: 403 });
   const { doctor, prescription } = verified;
 
+  const OPEN = ["draft", "pending_review", "revised"];
+  if (action === "revise") {
+    if (prescription.status !== "approved")
+      return NextResponse.json({ error: "Only a signed prescription can be revised." }, { status: 409 });
+    const revision = await createPrescriptionRevision(db, prescription);
+    if (!revision) return NextResponse.json({ error: "Could not create a new version." }, { status: 500 });
+    await logClinicalAudit(db, prescription.consultation_id, revision.id, "doctor", "prescription_revision_opened", { supersedes: prescription.id });
+    return NextResponse.json({ prescription: revision });
+  }
+  if (!OPEN.includes(prescription.status))
+    return NextResponse.json(
+      { error: prescription.status === "approved" ? "This prescription is signed and locked. Create a new version to change it." : "This prescription can no longer be changed." },
+      { status: 409 }
+    );
+
   if (action === "approve") {
     if (!signature_data || !signature_data.trim())
       return NextResponse.json({ error: "A signature is required to approve a prescription." }, { status: 400 });
 
+    const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(signature_data.trim());
+    if (!m) return NextResponse.json({ error: "The signature must be a PNG image." }, { status: 400 });
+    const png = Buffer.from(m[1], "base64");
+    if (png.length < 100 || png.length > 600_000) return NextResponse.json({ error: "Invalid signature image." }, { status: 400 });
+    // A per-prescription copy of the exact signature used, in the private bucket.
+    const signaturePath = `${doctor.user_id}/signed/${prescription_id}.png`;
+    const { error: sigErr } = await db.storage.from("signatures").upload(signaturePath, png, { upsert: true, contentType: "image/png" });
+    if (sigErr) return NextResponse.json({ error: "Could not store the signature." }, { status: 500 });
+
     const finalContent = edited_prescription || prescription.doctor_edited_prescription || prescription.ai_generated_prescription;
-    const result = await approvePrescription(db, prescription_id, doctor.id, finalContent);
+    const result = await approvePrescription(db, prescription, { doctor, finalContent, signaturePath });
     if (!result) return NextResponse.json({ error: "Could not approve the prescription." }, { status: 500 });
 
     await logClinicalAudit(db, prescription.consultation_id, prescription_id, "doctor", "prescription_approved", {

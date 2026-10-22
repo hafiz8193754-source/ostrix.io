@@ -82,11 +82,9 @@ describe("chat completions mapping", () => {
     });
   });
 
-  it("maps Anthropic web search to server-side search_parameters and other tools to functions", () => {
+  it("drops deprecated web search and maps other tools to functions", () => {
     const webSearch: AiTool = { type: "web_search_20250305", name: "web_search" };
-    expect(mapTools([webSearch])).toEqual({
-      search_parameters: { mode: "auto", return_citations: true },
-    });
+    expect(mapTools([webSearch])).toEqual({});
 
     const custom: AiTool = {
       type: "custom",
@@ -105,7 +103,6 @@ describe("chat completions mapping", () => {
           },
         },
       ],
-      search_parameters: { mode: "auto", return_citations: true },
     });
   });
 
@@ -123,8 +120,8 @@ describe("chat completions mapping", () => {
         { role: "system", content: "JSON only" },
         { role: "user", content: "symptoms" },
       ],
-      search_parameters: { mode: "auto", return_citations: true },
     });
+    expect(body).not.toHaveProperty("search_parameters");
     expect(body).not.toHaveProperty("tools");
   });
 });

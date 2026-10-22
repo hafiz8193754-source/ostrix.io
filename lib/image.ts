@@ -5,7 +5,7 @@ export interface ResizedPhoto {
 }
 
 // Downscales a photo client-side so uploads stay small and fast on rural connections.
-// maxDimension defaults to 1024 (soil photos); builder screenshots pass 1200
+// maxDimension defaults to 1024. Callers that need a larger photo pass their own.
 // since UI detail benefits from a bit more resolution.
 export function readPhoto(file: File, maxDimension = 1024): Promise<ResizedPhoto> {
   return new Promise((resolve, reject) => {

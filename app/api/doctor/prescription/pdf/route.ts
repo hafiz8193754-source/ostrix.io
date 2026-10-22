@@ -6,21 +6,22 @@ import { buildPrescriptionPdf } from "@/lib/prescriptionPdf";
 export const maxDuration = 30;
 
 export async function GET(request: Request) {
-  const user = await getUserFromRequest(request);
-  if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const auth = await getUserFromRequest(request);
+  if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const { user, db } = auth;
 
   const { searchParams } = new URL(request.url);
   const prescriptionId = searchParams.get("id");
   if (!prescriptionId) return NextResponse.json({ error: "Missing prescription id." }, { status: 400 });
 
-  const prescription = await getPrescription(prescriptionId);
+  const prescription = await getPrescription(db, prescriptionId);
   if (!prescription) return NextResponse.json({ error: "Prescription not found." }, { status: 404 });
   // A prescription is only ever a candidate for PDF export once a doctor has
   // actually signed off on it — draft/pending/rejected content never leaves this door.
   if (prescription.status !== "approved" || !prescription.final_prescription)
     return NextResponse.json({ error: "This prescription has not been approved yet." }, { status: 400 });
 
-  const [doctor, patient] = await Promise.all([getDoctorById(prescription.doctor_id), getPatientById(prescription.patient_id)]);
+  const [doctor, patient] = await Promise.all([getDoctorById(db, prescription.doctor_id), getPatientById(db, prescription.patient_id)]);
   if (!doctor || !patient) return NextResponse.json({ error: "Could not load prescription details." }, { status: 500 });
 
   // This route is fetched by BOTH the assigned doctor (dashboard) and the
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "You don't have access to this prescription." }, { status: 403 });
 
   const pdfBytes = await buildPrescriptionPdf(prescription, doctor, patient);
-  await logClinicalAudit(null, prescription.id, "patient", "prescription_pdf_downloaded", {});
+  await logClinicalAudit(db, null, prescription.id, "patient", "prescription_pdf_downloaded", {});
 
   return new NextResponse(Buffer.from(pdfBytes), {
     headers: {

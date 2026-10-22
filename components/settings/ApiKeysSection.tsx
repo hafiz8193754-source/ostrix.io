@@ -13,7 +13,6 @@ interface ApiKeysSectionProps {
 const PROVIDERS = [
   { key: "anthropic", label: "Anthropic (Claude)" },
   { key: "openai", label: "OpenAI" },
-  { key: "vercel", label: "Vercel (deploy)" },
 ];
 
 export function ApiKeysSection({ profile, onSave }: ApiKeysSectionProps) {

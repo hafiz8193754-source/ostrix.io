@@ -16,6 +16,6 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
 
-  await saveDoctorSignature(guard.doctor.id, parsed.data.signature_path);
+  await saveDoctorSignature(guard.db, guard.doctor.id, parsed.data.signature_path);
   return NextResponse.json({ ok: true, signature_url: parsed.data.signature_path });
 }

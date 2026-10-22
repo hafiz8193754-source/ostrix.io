@@ -10,8 +10,9 @@ const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
 // input (Doctor's intake, Farm's intake), not agent-specific. Nothing in
 // this handler depends on which agent is calling it.
 export async function POST(request: Request) {
-  const user = await getUserFromRequest(request);
-  if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const auth = await getUserFromRequest(request);
+  if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const { user, db } = auth;
 
   const form = await request.formData().catch(() => null);
   const audio = form?.get("audio");

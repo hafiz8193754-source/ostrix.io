@@ -15,6 +15,8 @@ export function AppointmentConfirmation({ appointment, confirmationMessage, doct
   const [calling, setCalling] = useState(false);
   const [callError, setCallError] = useState("");
   const [called, setCalled] = useState(false);
+  const [status, setStatus] = useState(appointment.status);
+  const [cancelling, setCancelling] = useState(false);
 
   async function startCall() {
     setCalling(true);
@@ -72,6 +74,33 @@ export function AppointmentConfirmation({ appointment, confirmationMessage, doct
             </a>
           )}
         </div>
+        {status !== "cancelled" && status !== "completed" && (
+          <button
+            onClick={async () => {
+              setCancelling(true);
+              setCallError("");
+              try {
+                const res = await fetch("/api/doctor/appointment", {
+                  method: "PATCH",
+                  headers: { "content-type": "application/json", authorization: `Bearer ${accessToken}` },
+                  body: JSON.stringify({ appointment_id: appointment.id, status: "cancelled" }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Could not cancel.");
+                setStatus("cancelled");
+              } catch (e) {
+                setCallError((e as Error).message);
+              } finally {
+                setCancelling(false);
+              }
+            }}
+            disabled={cancelling}
+            className="mt-2 text-xs font-medium text-red-600 disabled:opacity-60"
+          >
+            {cancelling ? "Cancelling…" : "Cancel appointment"}
+          </button>
+        )}
+        {status === "cancelled" && <p className="mt-2 text-xs text-text-muted">This appointment is cancelled.</p>}
         {callError && <p className="text-xs text-red-600">{callError}</p>}
         <p className="text-xs text-text-muted">
           {called

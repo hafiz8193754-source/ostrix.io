@@ -7,7 +7,8 @@ import { deleteAccountSchema } from "@/lib/schemas";
 // patients, notifications, …) is declared `on delete cascade`, so this one
 // call is the complete account wipe.
 export async function POST(request: Request) {
-  const gate = adminConfigGate(await getUserFromRequest(request));
+  const auth = await getUserFromRequest(request);
+  const gate = adminConfigGate(auth?.user ?? null);
   if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status });
 
   const body = await request.json();

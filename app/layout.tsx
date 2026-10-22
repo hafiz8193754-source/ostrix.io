@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
   title: `${BRAND.name} — ${BRAND.tagline}`,
-  description: `${BRAND.name}: specialist AI agents that build websites and plan farm seasons.`,
+  description: `${BRAND.name}: talk through symptoms, book a verified doctor, and receive a signed prescription.`,
 };
 
 // Reads the theme-preference cookie (not chat data — a small UI preference,

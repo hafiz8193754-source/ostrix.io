@@ -16,19 +16,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid request." }, { status: 400 });
   const { consultation_id, duration_seconds, doctor_notes } = parsed.data;
 
-  const existing = await getConsultation(consultation_id);
+  const existing = await getConsultation(guard.db, consultation_id);
   if (!existing) return NextResponse.json({ error: "Consultation not found." }, { status: 404 });
   if (existing.doctor_id !== guard.doctor.id)
     return NextResponse.json({ error: "You are not the doctor for this consultation." }, { status: 403 });
 
-  const consultation = await endCall(consultation_id, duration_seconds, doctor_notes || "");
+  const consultation = await endCall(guard.db, consultation_id, duration_seconds, doctor_notes || "");
   if (!consultation) return NextResponse.json({ error: "Could not end the call." }, { status: 500 });
-  await logClinicalAudit(consultation_id, null, "doctor", "call_ended", { duration_seconds });
+  await logClinicalAudit(guard.db, consultation_id, null, "doctor", "call_ended", { duration_seconds });
 
   let summary: unknown = null;
   if ((doctor_notes || "").trim()) {
     try {
-      summary = await generateVisitSummary(consultation_id, doctor_notes || "");
+      summary = await generateVisitSummary(guard.db, consultation_id, doctor_notes || "");
     } catch {
       // Summary is a convenience — the doctor's raw notes are already saved either way.
     }

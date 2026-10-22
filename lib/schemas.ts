@@ -1,77 +1,5 @@
 import { z } from "zod";
 
-// Shared with the Farm Advisor <select> and the Zod enum below, so the two
-// can never drift apart.
-export const CROPS = [
-  "Wheat (گندم)",
-  "Maize (مکئی)",
-  "Rice (چاول)",
-  "Cotton (کپاس)",
-  "Sugarcane (گنا)",
-  "Potato (آلو)",
-  "Vegetables (سبزیاں)",
-  "Citrus (ترشاوہ)",
-] as const;
-
-const photoSchema = z
-  .object({
-    data: z.string().min(1),
-    type: z.string().min(1),
-  })
-  .nullable()
-  .optional();
-
-export const builderBriefSchema = z.object({
-  brief: z.string().trim().min(1, "Describe what you'd like built.").max(2000, "Keep it under 2000 characters."),
-  screenshot: photoSchema,
-});
-export type BuilderBriefInput = z.infer<typeof builderBriefSchema>;
-
-// Conversational intake output — crop is no longer a farmer-picked field,
-// it's the AI's recommendation. CROPS above is now just quick-pick options
-// for the (optional) "what did you grow last season" question.
-export const farmIntakeSchema = z.object({
-  district: z.string().trim().min(1, "District is required."),
-  landSize: z.string().trim().min(1, "Land size is required."),
-  soilType: z.string().trim().min(1, "Soil type is required."),
-  waterSource: z.string().trim().min(1, "Water source is required."),
-  previousCrop: z.string().trim().max(200).optional().or(z.literal("")),
-  budget: z.string().trim().max(200).optional().or(z.literal("")),
-  problem: z.string().trim().max(1000, "Keep it under 1000 characters.").optional().or(z.literal("")),
-  photo: photoSchema,
-});
-export type FarmIntakeInput = z.infer<typeof farmIntakeSchema>;
-
-export const siteFileSchema = z.object({
-  path: z.string().min(1),
-  content: z.string(),
-});
-
-export const deploySchema = z.object({
-  name: z.string().trim().min(1, "Nothing to deploy."),
-  files: z.array(siteFileSchema).min(1, "Nothing to deploy."),
-});
-export type DeployInput = z.infer<typeof deploySchema>;
-
-export const sandboxRestartSchema = z.object({
-  files: z.array(siteFileSchema).min(1, "No files provided."),
-});
-export type SandboxRestartInput = z.infer<typeof sandboxRestartSchema>;
-
-export const screenshotBuildSchema = z.object({
-  screenshot: z.object({ data: z.string().min(1), type: z.string().min(1) }),
-  additionalBrief: z.string().trim().max(1000, "Keep it under 1000 characters.").optional().or(z.literal("")),
-});
-export type ScreenshotBuildInput = z.infer<typeof screenshotBuildSchema>;
-
-export const refineSchema = z.object({
-  originalBrief: z.string().trim().min(1),
-  siteName: z.string().trim().min(1),
-  currentFiles: z.array(siteFileSchema).min(1, "Nothing to refine."),
-  changeRequest: z.string().trim().min(1, "Describe what to change.").max(1000, "Keep it under 1000 characters."),
-});
-export type RefineInput = z.infer<typeof refineSchema>;
-
 // ---------- Doctor & Clinical Agent ----------
 
 export const symptomAnalysisSchema = z.object({
@@ -107,6 +35,12 @@ export const appointmentBookingSchema = z.object({
   }),
 });
 export type AppointmentBookingInput = z.infer<typeof appointmentBookingSchema>;
+
+export const appointmentUpdateSchema = z.object({
+  appointment_id: z.string().uuid(),
+  status: z.enum(["pending", "confirmed", "in_progress", "completed", "cancelled", "no_show"]),
+});
+export type AppointmentUpdateInput = z.infer<typeof appointmentUpdateSchema>;
 
 export const callStartSchema = z.object({ appointment_id: z.string().uuid() });
 
@@ -268,30 +202,6 @@ export const notificationMarkReadSchema = z.object({
 });
 export type NotificationMarkReadInput = z.infer<typeof notificationMarkReadSchema>;
 
-// ---------- Prompt Engineer (streaming) ----------
-
-export const promptEngineerAttachmentSchema = z.object({
-  kind: z.enum(["image", "pdf"]),
-  mediaType: z.string().trim().min(1).max(100),
-  data: z.string().min(1), // base64, no "data:" prefix
-  name: z.string().trim().max(200).optional(),
-});
-
-export const promptEngineerChatSchema = z
-  .object({
-    message: z.string().trim().max(4000, "Keep it under 4000 characters.").optional().default(""),
-    history: z
-      .array(z.object({ role: z.enum(["user", "assistant"]), text: z.string() }))
-      .max(40)
-      .optional(),
-    attachments: z.array(promptEngineerAttachmentSchema).max(6, "Attach up to 6 files.").optional(),
-    url: z.string().trim().max(2000).url("That doesn't look like a valid URL.").optional(),
-  })
-  .refine((d) => d.message.trim().length > 0 || (d.attachments && d.attachments.length > 0) || !!d.url, {
-    message: "Say something, attach a file, or paste a link.",
-  });
-export type PromptEngineerChatInput = z.infer<typeof promptEngineerChatSchema>;
-
 // ---------- Profile / settings ----------
 
 export const profileSettingsSchema = z.object({
@@ -301,7 +211,7 @@ export const profileSettingsSchema = z.object({
     .object({
       theme: z.enum(["dark", "light", "system"]).optional(),
       language: z.enum(["en", "ur", "pa"]).optional(),
-      defaultAgent: z.enum(["prompt_engineer", "builder", "farm", "doctor"]).optional(),
+      defaultAgent: z.enum(["doctor"]).optional(),
       autoTitles: z.boolean().optional(),
       apiKeys: z.record(z.string(), z.string()).optional(),
     })
@@ -315,7 +225,7 @@ export const deleteAccountSchema = z.object({
 export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;
 
 export const sessionCreateSchema = z.object({
-  agent: z.enum(["prompt_engineer", "builder", "farm", "doctor"]),
+  agent: z.enum(["doctor"]),
   title: z.string().trim().min(1).max(120).optional(),
 });
 export type SessionCreateInput = z.infer<typeof sessionCreateSchema>;

@@ -4,19 +4,21 @@ import { scheduleUpdateSchema } from "@/lib/schemas";
 import { getDoctorByUserId, getDoctorScheduleAndExceptions, saveDoctorSchedule } from "@/lib/clinical";
 
 export async function GET(request: Request) {
-  const user = await getUserFromRequest(request);
-  if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
-  const doctor = await getDoctorByUserId(user.id);
+  const auth = await getUserFromRequest(request);
+  if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const { user, db } = auth;
+  const doctor = await getDoctorByUserId(db, user.id);
   if (!doctor) return NextResponse.json({ error: "No doctor profile found." }, { status: 404 });
 
-  const result = await getDoctorScheduleAndExceptions(doctor.id);
+  const result = await getDoctorScheduleAndExceptions(db, doctor.id);
   return NextResponse.json(result);
 }
 
 export async function POST(request: Request) {
-  const user = await getUserFromRequest(request);
-  if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
-  const doctor = await getDoctorByUserId(user.id);
+  const auth = await getUserFromRequest(request);
+  if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const { user, db } = auth;
+  const doctor = await getDoctorByUserId(db, user.id);
   if (!doctor) return NextResponse.json({ error: "No doctor profile found." }, { status: 404 });
 
   const body = await request.json();
@@ -24,6 +26,6 @@ export async function POST(request: Request) {
   if (!parsed.success)
     return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid request." }, { status: 400 });
 
-  const schedule = await saveDoctorSchedule(doctor.id, parsed.data.schedule);
+  const schedule = await saveDoctorSchedule(db, doctor.id, parsed.data.schedule);
   return NextResponse.json({ schedule });
 }

@@ -10,17 +10,19 @@ export default function Landing() {
       <OstrixLogo size="lg" layout="column" />
       <div>
         <p className="mx-auto max-w-md text-base text-text-secondary">
-          {BRAND.tagline} Describe a website and get it built and deployed — or send a soil photo and get a full
-          season farm plan.
+          {BRAND.tagline} Describe your symptoms, book a PMDC-verified doctor, and get a prescription your doctor has signed.
         </p>
         <p className="mt-2 text-sm text-text-muted">{BRAND.urdu}</p>
       </div>
       <div className="flex flex-wrap justify-center gap-3">
         <Button asChild size="lg">
-          <Link href="/studio">Open the studio</Link>
+          <Link href="/studio">Talk to a doctor</Link>
         </Button>
         <Button asChild variant="outline" size="lg">
           <Link href="/login">Sign in</Link>
+        </Button>
+        <Button asChild variant="outline" size="lg">
+          <Link href="/doctor/register">Register as a doctor</Link>
         </Button>
       </div>
     </div>

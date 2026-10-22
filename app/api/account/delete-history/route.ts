@@ -3,9 +3,10 @@ import { getUserFromRequest } from "@/lib/serverAuth";
 import { deleteAllChatHistory } from "@/lib/profiles";
 
 export async function POST(request: Request) {
-  const user = await getUserFromRequest(request);
-  if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const auth = await getUserFromRequest(request);
+  if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const { user, db } = auth;
 
-  await deleteAllChatHistory(user.id);
+  await deleteAllChatHistory(db, user.id);
   return NextResponse.json({ ok: true });
 }

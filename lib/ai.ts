@@ -52,7 +52,6 @@ type FunctionTool = {
 
 export interface XaiRequestExtras {
   tools?: FunctionTool[];
-  search_parameters?: { mode: "auto"; return_citations: boolean };
 }
 
 interface ChatDelta {
@@ -130,22 +129,16 @@ function isWebSearchTool(tool: AiTool): boolean {
   return type === "web_search" || type === "web_search_preview" || type.startsWith("web_search_") || name === "web_search";
 }
 
-// Anthropic's web_search_* server tool runs inside one request and the text
-// that comes back is already the final answer. xAI chat completions do the
-// same through search_parameters (mode "auto" — the model decides, matching
-// the previous tool). Other tools become OpenAI function definitions. This
-// client does not run a follow-up tool loop: function-call payloads are
-// surfaced as tool_start events and omitted from the returned text, which is
-// what the previous client did with tool_use blocks.
+// xAI chat completions reject the old Live Search `search_parameters` field
+// (HTTP 410). Web-search server tools are omitted. Other tools become OpenAI
+// function definitions. This client does not run a follow-up tool loop:
+// function-call payloads are surfaced as tool_start events and omitted from
+// the returned text.
 export function mapTools(tools?: AiTool[]): XaiRequestExtras {
   if (!tools?.length) return {};
   const functions: FunctionTool[] = [];
-  let webSearch = false;
   for (const tool of tools) {
-    if (isWebSearchTool(tool)) {
-      webSearch = true;
-      continue;
-    }
+    if (isWebSearchTool(tool)) continue;
     const name = tool.name || tool.type || "tool";
     functions.push({
       type: "function",
@@ -156,10 +149,7 @@ export function mapTools(tools?: AiTool[]): XaiRequestExtras {
       },
     });
   }
-  return {
-    ...(functions.length ? { tools: functions } : {}),
-    ...(webSearch ? { search_parameters: { mode: "auto", return_citations: true } } : {}),
-  };
+  return functions.length ? { tools: functions } : {};
 }
 
 export function buildXaiRequest(params: AiParams, stream: boolean) {
@@ -321,11 +311,6 @@ async function streamXai(params: AiParams, onEvent: (event: StreamEvent) => void
     body: JSON.stringify(body),
   });
   if (!res.ok || !res.body) throw await apiError(res, "xAI API");
-
-  // Server-side web search happens before visible tokens. Emit tool_start as
-  // soon as the stream is open so callers can show "Searching…" during that
-  // wait, the same moment Anthropic used to open a non-text content block.
-  if (body.search_parameters) onEvent({ type: "tool_start" });
 
   let full = "";
   await readSse(res.body, (payload) => {

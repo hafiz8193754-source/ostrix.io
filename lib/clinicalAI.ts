@@ -2,6 +2,8 @@
 // lib/clinical.ts (pure DB access) and out of individual route.ts files
 // (which should only export HTTP handlers) so summary/prescription generation
 // logic isn't duplicated or cross-imported between route modules.
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { complete, extractJson } from "@/lib/ai";
 import { saveVisitSummary, logClinicalAudit } from "@/lib/clinical";
 import type { PrescriptionData } from "@/types";
@@ -20,11 +22,11 @@ Return ONLY valid JSON:
   "red_flags_discussed": ["warning signs told to patient"]
 }`;
 
-export async function generateVisitSummary(consultationId: string, doctorNotes: string): Promise<unknown> {
+export async function generateVisitSummary(db: SupabaseClient, consultationId: string, doctorNotes: string): Promise<unknown> {
   const raw = await complete({ system: SUMMARY_SYSTEM, content: doctorNotes, maxTokens: 1200 });
   const summary = extractJson(raw);
-  await saveVisitSummary(consultationId, JSON.stringify(summary));
-  await logClinicalAudit(consultationId, null, "ai", "visit_summary_generated", {});
+  await saveVisitSummary(db, consultationId, JSON.stringify(summary));
+  await logClinicalAudit(db, consultationId, null, "ai", "visit_summary_generated", {});
   return summary;
 }
 
@@ -41,7 +43,7 @@ CRITICAL RULES:
 - NEVER include controlled substances (Schedule H drugs) without explicit flagging
 - State uncertainty plainly — if the transcript or notes don't clearly support a finding, say so rather than guessing
 - Never invent a detail the patient or doctor didn't actually say. If something is genuinely unclear or missing, list it under contraindication_flags as something for the doctor's attention instead of filling the gap yourself
-- You may search the web for current drug availability/dosing reference information when useful — this is supplementary reference material only, never a substitute for the doctor's own judgment. The doctor reviews, edits, and must explicitly approve every draft before anything reaches the patient.
+- The doctor reviews, edits, and must explicitly approve every draft before anything reaches the patient.
 - This is a DRAFT for doctor review — it is never sent to a patient directly
 
 Return ONLY valid JSON:
@@ -87,7 +89,6 @@ export async function generatePrescriptionDraft(ctx: DraftContext): Promise<Pres
     system: PRESCRIPTION_SYSTEM,
     content,
     maxTokens: 2000,
-    tools: [{ type: "web_search_20250305", name: "web_search" }],
   });
   return extractJson<PrescriptionData>(raw);
 }

@@ -7,9 +7,10 @@ interface RouteParams {
 }
 
 export async function POST(request: Request, { params }: RouteParams) {
-  const user = await getUserFromRequest(request);
-  if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const auth = await getUserFromRequest(request);
+  if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const { user, db } = auth;
 
-  await markNotificationsRead(user.id, [params.id]);
+  await markNotificationsRead(db, user.id, [params.id]);
   return NextResponse.json({ ok: true });
 }

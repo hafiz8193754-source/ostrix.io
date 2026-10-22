@@ -110,6 +110,16 @@ export default function DoctorDashboard() {
     load();
   }, [load]);
 
+  async function setAppointmentStatus(appointmentId: string, status: "confirmed" | "completed" | "cancelled") {
+    if (!session) return;
+    const res = await fetch("/api/doctor/appointment", {
+      method: "PATCH",
+      headers: { "content-type": "application/json", authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ appointment_id: appointmentId, status }),
+    });
+    if (res.ok) await load();
+  }
+
   async function startCall(appointmentId: string) {
     if (!session) return;
     setCallingId(appointmentId);
@@ -181,6 +191,21 @@ export default function DoctorDashboard() {
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="rounded-full bg-bg-elevated px-2 py-0.5 text-xs capitalize text-text-secondary">{a.status.replace(/_/g, " ")}</span>
+                  {isVerified && a.status !== "completed" && a.status !== "cancelled" && (
+                    <>
+                      {a.status === "pending" && (
+                        <button onClick={() => setAppointmentStatus(a.id, "confirmed")} className="text-xs font-medium text-accent">
+                          Confirm
+                        </button>
+                      )}
+                      <button onClick={() => setAppointmentStatus(a.id, "completed")} className="text-xs font-medium text-text-secondary">
+                        Complete
+                      </button>
+                      <button onClick={() => setAppointmentStatus(a.id, "cancelled")} className="text-xs font-medium text-red-600">
+                        Cancel
+                      </button>
+                    </>
+                  )}
                   {a.type === "online" && a.status !== "completed" && a.status !== "cancelled" && (
                     <button
                       onClick={() => startCall(a.id)}

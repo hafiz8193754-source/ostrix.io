@@ -23,7 +23,9 @@ export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
   const conference = searchParams.get("conference") || "";
   const consultation = searchParams.get("consultation") || "";
+  const token = searchParams.get("token") || "";
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+  const tokenQuery = token ? `&token=${encodeURIComponent(token)}` : "";
 
   if (!conference) {
     return xmlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Say>Sorry, this consultation could not be found.</Say><Hangup/></Response>`);
@@ -34,9 +36,9 @@ export async function POST(request: Request) {
   <Say voice="alice">This call will be recorded for medical record and quality purposes. By staying on the line, you consent to recording. Connecting you now.</Say>
   <Dial>
     <Conference
-      statusCallback="${escapeXml(`${appUrl}/api/doctor/call/status?consultation=${consultation}`)}"
+      statusCallback="${escapeXml(`${appUrl}/api/doctor/call/status?consultation=${consultation}${tokenQuery}`)}"
       statusCallbackEvent="start end join leave"
-      recordingStatusCallback="${escapeXml(`${appUrl}/api/doctor/call/recording?consultation=${consultation}`)}"
+      recordingStatusCallback="${escapeXml(`${appUrl}/api/doctor/call/recording?consultation=${consultation}${tokenQuery}`)}"
       record="record-from-start"
       endConferenceOnExit="true"
     >${escapeXml(conference)}</Conference>

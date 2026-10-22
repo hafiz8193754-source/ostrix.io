@@ -4,6 +4,7 @@ import { saveCallRecording, getConsultation, getAppointmentWithParties, savePres
 import { generatePrescriptionDraft } from "@/lib/clinicalAI";
 import { transcribeAudio } from "@/lib/whisper";
 import { createNotification } from "@/lib/notifications";
+import { getUserFromAccessToken } from "@/lib/serverAuth";
 
 export const maxDuration = 60;
 
@@ -29,6 +30,9 @@ export async function POST(request: Request) {
   const consultationId = searchParams.get("consultation");
   if (!consultationId) return NextResponse.json({ ok: true });
   if (params.RecordingStatus !== "completed" || !params.RecordingUrl) return NextResponse.json({ ok: true });
+  const session = await getUserFromAccessToken(searchParams.get("token") || "");
+  if (!session) return NextResponse.json({ error: "Invalid session." }, { status: 401 });
+  const { db } = session;
 
   try {
     const recordingUrl = `${params.RecordingUrl}.mp3`;
@@ -38,12 +42,12 @@ export async function POST(request: Request) {
     const audioBlob = await audioRes.blob();
 
     const transcript = await transcribeAudio(audioBlob, "consultation.mp3");
-    await saveCallRecording(consultationId, recordingUrl, transcript);
-    await logClinicalAudit(consultationId, null, "system", "call_transcribed", { length: transcript.length });
+    await saveCallRecording(db, consultationId, recordingUrl, transcript);
+    await logClinicalAudit(db, consultationId, null, "system", "call_transcribed", { length: transcript.length });
 
-    const consultation = await getConsultation(consultationId);
+    const consultation = await getConsultation(db, consultationId);
     if (!consultation) return NextResponse.json({ ok: true });
-    const parties = await getAppointmentWithParties(consultation.appointment_id);
+    const parties = await getAppointmentWithParties(db, consultation.appointment_id);
     if (!parties) return NextResponse.json({ ok: true });
 
     const draft = await generatePrescriptionDraft({
@@ -57,7 +61,7 @@ export async function POST(request: Request) {
       patientGender: parties.patient.gender,
     });
 
-    const prescription = await savePrescriptionDraft(
+    const prescription = await savePrescriptionDraft(db, 
       consultation.id,
       parties.doctor.id,
       parties.patient.id,
@@ -68,7 +72,7 @@ export async function POST(request: Request) {
     );
 
     if (prescription && parties.doctor.user_id) {
-      await createNotification(
+      await createNotification(db, 
         parties.doctor.user_id,
         "prescription_draft_ready",
         "A prescription draft is ready to review",
@@ -76,9 +80,9 @@ export async function POST(request: Request) {
         "/doctor/dashboard"
       );
     }
-    await logClinicalAudit(consultation.id, prescription?.id || null, "ai", "prescription_drafted_from_call", {});
+    await logClinicalAudit(db, consultation.id, prescription?.id || null, "ai", "prescription_drafted_from_call", {});
   } catch (e) {
-    await logClinicalAudit(consultationId, null, "system", "call_transcription_failed", { error: (e as Error).message });
+    await logClinicalAudit(db, consultationId, null, "system", "call_transcription_failed", { error: (e as Error).message });
   }
 
   return NextResponse.json({ ok: true });

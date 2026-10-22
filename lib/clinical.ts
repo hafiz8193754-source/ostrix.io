@@ -1,8 +1,10 @@
 import { createHash } from "crypto";
-import { createClient } from "@supabase/supabase-js";
 
 import { computePresence, type PresenceResult } from "@/lib/presence";
 import { createNotification } from "@/lib/notifications";
+import { dataClient, requireServiceClient } from "@/lib/serverAuth";
+
+export { VERIFICATION_CHECKLIST_ITEMS } from "@/lib/verificationChecklist";
 import type {
   Appointment,
   AvailabilityException,
@@ -17,15 +19,15 @@ import type {
 } from "@/types";
 import type { AvailabilityExceptionInput, DoctorRegisterInput, ScheduleRowInput } from "@/lib/schemas";
 
-// Server-only Supabase client (service role) — mirrors lib/serverAuth.ts's
-// adminClient(), kept local here so this file has no dependency on the
-// generic auth/session module.
+// User-scoped reads and writes follow RLS when the service-role key is unset.
 function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
-    process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder",
-    { auth: { persistSession: false } }
-  );
+  return dataClient();
+}
+
+// Presence sweeps and admin review touch other users' rows. They need the
+// service role; callers that cannot proceed without it already return 503.
+function serviceClient() {
+  return requireServiceClient();
 }
 
 // ---------- Doctors ----------
@@ -581,7 +583,7 @@ export async function recordHeartbeat(
   status?: "available" | "busy" | "on_break" | "do_not_disturb",
   resetOverride?: boolean
 ): Promise<{ doctor: Doctor; presence: PresenceResult } | null> {
-  const admin = adminClient();
+  const admin = serviceClient();
   const now = new Date();
   const patch: Record<string, unknown> = { last_seen_at: now.toISOString(), is_online: true };
   if (resetOverride) {
@@ -607,7 +609,7 @@ export async function recordHeartbeat(
 }
 
 export async function markDoctorOffline(doctorId: string, source: "timeout" | "logout"): Promise<void> {
-  const admin = adminClient();
+  const admin = serviceClient();
   await admin.from("doctors").update({ is_online: false, availability_status: "offline" }).eq("id", doctorId);
   await admin.from("doctor_presence_log").insert({ doctor_id: doctorId, status: "offline", source });
 }
@@ -616,7 +618,7 @@ export async function markDoctorOffline(doctorId: string, source: "timeout" | "l
 // and clears any manual override that's past its 4-hour expiry. Called from
 // the sweep endpoint, which is itself throttled — see app/api/doctor/presence/sweep/route.ts.
 export async function sweepStalePresence(): Promise<number> {
-  const admin = adminClient();
+  const admin = serviceClient();
   const staleCutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString();
   const { data: stale } = await admin.from("doctors").select("id").eq("is_online", true).lt("last_seen_at", staleCutoff);
   const staleIds = (stale || []).map((d: { id: string }) => d.id);
@@ -643,7 +645,7 @@ export async function sweepStalePresence(): Promise<number> {
 // Part 9 — a verified doctor whose PMDC registration has expired loses
 // clinical access automatically. Runs inside the same sweep endpoint.
 export async function sweepExpiredPmdc(): Promise<number> {
-  const admin = adminClient();
+  const admin = serviceClient();
   const today = new Date().toISOString().slice(0, 10);
   const { data: expired } = await admin
     .from("doctors")
@@ -675,7 +677,7 @@ export async function sweepExpiredPmdc(): Promise<number> {
 // Warns doctors within 60 days of expiry, once (pmdc_expiry_warned_at guards
 // against renotifying on every sweep).
 export async function warnExpiringPmdc(): Promise<number> {
-  const admin = adminClient();
+  const admin = serviceClient();
   const today = new Date();
   const warnBy = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const { data: expiring } = await admin
@@ -706,7 +708,7 @@ export async function warnExpiringPmdc(): Promise<number> {
 // than on a presence "flip" event (there's no cron in this app, and sweep
 // already runs on every patient search, so this piggybacks on it).
 export async function drainNotifyRequests(): Promise<number> {
-  const admin = adminClient();
+  const admin = serviceClient();
   const { data: pending } = await admin.from("doctor_notify_requests").select("*").eq("notified", false);
   const rows = (pending || []) as { id: string; patient_user_id: string; doctor_id: string }[];
   if (!rows.length) return 0;
@@ -743,18 +745,8 @@ export async function createDoctorNotifyRequest(patientUserId: string, doctorId:
 
 // ---------- Admin: verification queue ----------
 
-export const VERIFICATION_CHECKLIST_ITEMS = [
-  { key: "pmdc_number_verified", label: "PMDC number verified at pmdc.org.pk" },
-  { key: "name_matches", label: "Name on PMDC record matches the name submitted" },
-  { key: "registration_active", label: "Registration status is Active (not suspended/expired)" },
-  { key: "pmdc_certificate_legible", label: "PMDC certificate document is legible and matches the number" },
-  { key: "degree_certificate_legible", label: "Degree certificate is legible" },
-  { key: "cnic_matches", label: "CNIC matches the name" },
-  { key: "specialization_consistent", label: "Specialization is consistent with qualifications" },
-] as const;
-
 export async function listDoctorsByStatus(status: RegistrationStatus): Promise<Doctor[]> {
-  const admin = adminClient();
+  const admin = serviceClient();
   const { data, error } = await admin
     .from("doctors")
     .select("*")
@@ -765,7 +757,7 @@ export async function listDoctorsByStatus(status: RegistrationStatus): Promise<D
 }
 
 export async function countDoctorsByStatus(): Promise<Record<RegistrationStatus, number>> {
-  const admin = adminClient();
+  const admin = serviceClient();
   const { data } = await admin.from("doctors").select("registration_status");
   const counts: Record<RegistrationStatus, number> = { pending: 0, under_review: 0, verified: 0, rejected: 0, suspended: 0 };
   (data || []).forEach((d: { registration_status: RegistrationStatus }) => {
@@ -789,7 +781,7 @@ export async function logDoctorVerification(
 
 // The only function in the codebase that may ever set pmdc_verified: true.
 export async function approveDoctor(doctorId: string, adminUserId: string): Promise<Doctor | null> {
-  const admin = adminClient();
+  const admin = serviceClient();
   const doctor = await getDoctorById(doctorId);
   if (!doctor) return null;
   const { data, error } = await admin
@@ -815,7 +807,7 @@ export async function approveDoctor(doctorId: string, adminUserId: string): Prom
 }
 
 export async function requestMoreInfo(doctorId: string, adminUserId: string, note: string): Promise<Doctor | null> {
-  const admin = adminClient();
+  const admin = serviceClient();
   const doctor = await getDoctorById(doctorId);
   if (!doctor) return null;
   const { data, error } = await admin
@@ -833,7 +825,7 @@ export async function requestMoreInfo(doctorId: string, adminUserId: string, not
 }
 
 export async function rejectDoctor(doctorId: string, adminUserId: string, reason: string): Promise<Doctor | null> {
-  const admin = adminClient();
+  const admin = serviceClient();
   const doctor = await getDoctorById(doctorId);
   if (!doctor) return null;
   const { data, error } = await admin
@@ -855,7 +847,7 @@ export async function suspendDoctor(
   adminUserId: string,
   reason: string
 ): Promise<{ doctor: Doctor; flaggedPrescriptionIds: string[] } | null> {
-  const admin = adminClient();
+  const admin = serviceClient();
   const doctor = await getDoctorById(doctorId);
   if (!doctor) return null;
   const { data, error } = await admin

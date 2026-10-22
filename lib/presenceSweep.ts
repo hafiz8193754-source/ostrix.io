@@ -1,4 +1,5 @@
 import { sweepStalePresence, sweepExpiredPmdc, warnExpiringPmdc, drainNotifyRequests } from "@/lib/clinical";
+import { hasServiceRoleKey } from "@/lib/serverAuth";
 
 // Shared by every call site that should trigger a sweep (patient search,
 // admin panel load, the dedicated sweep endpoint) so they all respect the
@@ -16,6 +17,10 @@ export interface SweepResult {
 }
 
 export async function runPresenceSweep(): Promise<SweepResult> {
+  // Called opportunistically from user routes (symptom search, dashboard).
+  // Without the service role there is nothing this sweep can do under RLS,
+  // and it must not fail the request that triggered it.
+  if (!hasServiceRoleKey()) return { skipped: true };
   const now = Date.now();
   if (now - lastSweepAt < SWEEP_INTERVAL_MS) return { skipped: true };
   lastSweepAt = now;

@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------- Design tokens ----------
+   Light theme by default. Every color used anywhere in the app must resolve
+   to one of these variables (via the Tailwind tokens in tailwind.config.ts) —
+   never a hardcoded hex value in component code. */
+:root {
+  color-scheme: light;
+
+  --bg-base: #FAFAF8;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #F1EFEA;
+  --bg-overlay: #E8E5DF;
+
+  --accent: #FF8C00;
+  --accent-hover: #FFB800;
+  --accent-glow: rgba(255, 140, 0, 0.18);
+
+  --text-primary: #1C1C1C;
+  --text-secondary: #5C5C5C;
+  --text-muted: #9C9C9C;
+
+  --border: #E3E1DC;
+  --border-subtle: #EFEDE8;
+
+  /* Code blocks stay dark for contrast/readability, even on the light UI. */
+  --code-bg: #0D0D0D;
+}
+
+/* Dark theme — set via data-theme="dark" on <html>, applied by lib/theme.ts
+   (and, before hydration, the blocking inline script in app/layout.tsx so
+   there's no flash of the wrong theme). Every token below mirrors :root 1:1. */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg-base: #171717;
+  --bg-surface: #1E1E1E;
+  --bg-elevated: #262626;
+  --bg-overlay: #2E2E2E;
+
+  --accent: #FF8C00;
+  --accent-hover: #FFB800;
+  --accent-glow: rgba(255, 140, 0, 0.22);
+
+  --text-primary: #F2F2F0;
+  --text-secondary: #ABABAB;
+  --text-muted: #6E6E6E;
+
+  --border: #333333;
+  --border-subtle: #2A2A2A;
+
+  --code-bg: #0D0D0D;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  height: 100%;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--accent-glow);
+  color: var(--text-primary);
+}
+
+/* Slim dark scrollbars for the sidebar / thread / code panes. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.font-display {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.font-mono-code {
+  font-family: 'JetBrains Mono', Consolas, monospace;
+}

@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Session as SupabaseSession } from "@supabase/supabase-js";
 
+import { MousePointerClick, UserCheck } from "lucide-react";
+
+import { CopyButton, EmptyState, InitialsAvatar, RowSkeletons, Segmented, StatusBadge } from "@/components/admin/ui";
 import { DoctorQueueCard } from "@/components/admin/DoctorQueueCard";
 import { DoctorReviewPanel } from "@/components/admin/DoctorReviewPanel";
 import type { Doctor, RegistrationStatus } from "@/types";
@@ -80,41 +83,62 @@ export function DoctorVerificationPanel({ session, onUnauthorized, onCountsChang
   const selected = doctors.find((d) => d.id === selectedId) || null;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="font-display text-xl font-bold text-text-primary">Doctor verification</h2>
-        <p className="mt-1 text-sm text-text-secondary">Verify PMDC registrations by hand — nothing here is automated.</p>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="font-display text-lg font-bold text-text-primary">Doctor verification</h2>
+          <p className="mt-0.5 text-sm text-text-secondary">Verify PMDC registrations by hand — nothing here is automated.</p>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
-        {TABS.map((t) => (
-          <button
-            key={t.status}
-            onClick={() => setTab(t.status)}
-            className={`rounded-full border px-3.5 py-1.5 text-xs font-medium ${
-              tab === t.status ? "border-accent bg-accent-glow text-accent" : "border-border bg-bg-elevated text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            {t.label} ({counts[t.status]})
-          </button>
-        ))}
-      </div>
+      <Segmented
+        label="Doctor status"
+        items={TABS.map((t) => ({ id: t.status, label: t.label, count: counts[t.status] }))}
+        value={tab}
+        onChange={setTab}
+      />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
-        <div className="flex flex-col gap-2">
-          {loading && <p className="text-sm text-text-muted">Loading…</p>}
-          {!loading && doctors.length === 0 && <p className="text-sm text-text-muted">No doctors in this queue.</p>}
-          {doctors.map((d) => (
-            <DoctorQueueCard key={d.id} doctor={d} selected={d.id === selectedId} onSelect={() => setSelectedId(d.id)} />
-          ))}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_1fr]">
+        <div className="flex flex-col gap-2" aria-live="polite">
+          {loading && <RowSkeletons rows={3} />}
+          {!loading && doctors.length === 0 && (
+            <EmptyState icon={UserCheck} title="No doctors in this queue" hint="New registrations will appear here as soon as doctors submit them." />
+          )}
+          {!loading &&
+            doctors.map((d) => (
+              <DoctorQueueCard key={d.id} doctor={d} selected={d.id === selectedId} onSelect={() => setSelectedId(d.id)} />
+            ))}
         </div>
 
-        <div>
+        <div className="min-w-0">
           {selected ? (
-            <DoctorReviewPanel doctor={selected} accessToken={session.access_token || ""} onReviewed={handleReviewed} />
+            <div className="flex flex-col gap-4 rounded-2xl border border-border bg-bg-surface p-4 shadow-sm sm:p-5">
+              <div className="flex flex-wrap items-center gap-3 border-b border-border-subtle pb-4">
+                <InitialsAvatar name={selected.full_name} size="lg" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-display text-base font-bold text-text-primary">{selected.full_name}</p>
+                  <p className="text-xs capitalize text-text-secondary">
+                    {selected.specialization.replace(/_/g, " ")}
+                    {selected.city ? ` · ${selected.city}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded-lg border border-border bg-bg-elevated py-1 pl-2.5 pr-1 font-mono text-xs font-semibold text-text-primary">
+                    PMDC {selected.pmdc_number}
+                    <CopyButton value={selected.pmdc_number} label="PMDC number" />
+                  </span>
+                  <StatusBadge status={selected.registration_status} />
+                </div>
+              </div>
+              <DoctorReviewPanel doctor={selected} accessToken={session.access_token || ""} onReviewed={handleReviewed} />
+            </div>
           ) : (
-            <div className="flex h-full min-h-[200px] items-center justify-center rounded-xl border border-dashed border-border text-sm text-text-muted">
-              Select a doctor from the list to review.
+            <div className="hidden h-full min-h-[260px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-bg-surface text-center lg:flex">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-bg-elevated text-text-muted">
+                <MousePointerClick className="h-5 w-5" />
+              </span>
+              <p className="text-sm font-medium text-text-primary">Select a doctor to review</p>
+              <p className="text-xs text-text-muted">Documents, checklist and actions open here.</p>
             </div>
           )}
         </div>

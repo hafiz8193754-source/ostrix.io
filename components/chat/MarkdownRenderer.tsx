@@ -64,7 +64,7 @@ function PromptBlock({ text }: { text: string }) {
         <span className="text-[11px] font-semibold uppercase tracking-wide text-accent">Ready to copy</span>
         <button
           onClick={() => copy("top")}
-          className="flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-[11px] font-medium text-black transition-colors hover:bg-accent-hover"
+          className="flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-[11px] font-medium text-accent-fg transition-colors hover:bg-accent-hover"
         >
           {copiedTop ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
           {copiedTop ? "Copied" : "Copy"}

@@ -194,7 +194,7 @@ export function DoctorDirectory({ doctors, aiAnalysis, symptomsDescription, sess
               {doctor.presence.is_bookable ? (
                 <button
                   onClick={() => openBooking(doctor)}
-                  className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-black hover:bg-accent-hover"
+                  className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-accent-fg hover:bg-accent-hover"
                 >
                   <Calendar className="h-3.5 w-3.5" /> Book Appointment
                 </button>
@@ -227,7 +227,7 @@ export function DoctorDirectory({ doctors, aiAnalysis, symptomsDescription, sess
               )}
             </div>
           ) : (
-            <div className="flex flex-col gap-2 rounded-lg border border-border bg-bg-surface p-3">
+            <div className="flex flex-col gap-2 rounded-2xl border border-border bg-bg-surface shadow-card p-3">
               <div className="grid grid-cols-2 gap-2">
                 <select value={date} onChange={(e) => setDate(e.target.value)} className="h-9 rounded-md border border-border bg-bg-elevated px-2 text-xs text-text-primary outline-none focus-visible:border-accent">
                   {nextAvailableDates(doctor.available_days).map((d) => (
@@ -238,8 +238,8 @@ export function DoctorDirectory({ doctors, aiAnalysis, symptomsDescription, sess
               </div>
               {doctor.accepts_online && doctor.accepts_walk_in && (
                 <div className="flex gap-1 rounded-md border border-border bg-bg-elevated p-0.5 text-xs">
-                  <button onClick={() => setType("online")} className={`flex-1 rounded px-2 py-1 ${type === "online" ? "bg-accent text-black" : "text-text-secondary"}`}>Online</button>
-                  <button onClick={() => setType("walk_in")} className={`flex-1 rounded px-2 py-1 ${type === "walk_in" ? "bg-accent text-black" : "text-text-secondary"}`}>Walk-in</button>
+                  <button onClick={() => setType("online")} className={`flex-1 rounded px-2 py-1 ${type === "online" ? "bg-accent text-accent-fg" : "text-text-secondary"}`}>Online</button>
+                  <button onClick={() => setType("walk_in")} className={`flex-1 rounded px-2 py-1 ${type === "walk_in" ? "bg-accent text-accent-fg" : "text-text-secondary"}`}>Walk-in</button>
                 </div>
               )}
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" className="h-9 rounded-md border border-border bg-bg-elevated px-2.5 text-xs text-text-primary placeholder:text-text-muted outline-none focus-visible:border-accent" />
@@ -260,7 +260,7 @@ export function DoctorDirectory({ doctors, aiAnalysis, symptomsDescription, sess
                 <button
                   onClick={() => confirmBooking(doctor)}
                   disabled={submitting}
-                  className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-black hover:bg-accent-hover disabled:opacity-60"
+                  className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-accent-fg hover:bg-accent-hover disabled:opacity-60"
                 >
                   {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Confirm Booking
                 </button>

@@ -186,7 +186,7 @@ export function ScheduleManager({ accessToken }: ScheduleManagerProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        <button onClick={save} disabled={saving} className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-medium text-black disabled:opacity-50">
+        <button onClick={save} disabled={saving} className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-xs font-medium text-accent-fg disabled:opacity-50">
           {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Save schedule
         </button>
         {savedMsg && <span className="text-xs text-emerald-600">Saved.</span>}
@@ -232,7 +232,7 @@ export function ScheduleManager({ accessToken }: ScheduleManagerProps) {
             placeholder="Reason (optional)"
             className="h-8 flex-1 rounded-md border border-border bg-bg-surface px-2 text-xs text-text-primary outline-none"
           />
-          <button onClick={addException} disabled={!exceptionDate} className="h-8 rounded-md bg-accent px-3 text-xs font-medium text-black disabled:opacity-50">
+          <button onClick={addException} disabled={!exceptionDate} className="h-8 rounded-md bg-accent px-3 text-xs font-medium text-accent-fg disabled:opacity-50">
             Add
           </button>
         </div>

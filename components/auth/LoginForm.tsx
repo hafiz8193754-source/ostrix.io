@@ -50,9 +50,9 @@ export function LoginForm({ initialMode = "signin" }: { initialMode?: "signin" |
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg-base px-6">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-mesh px-6 py-10">
       <OstrixLogo size="sm" withWordmark />
-      <div className="w-full max-w-sm rounded-xl border border-border bg-bg-surface p-7">
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-bg-surface/90 p-8 shadow-lift backdrop-blur">
         <h2 className="font-display text-lg font-bold text-text-primary">
           {mode === "signin" ? `Sign in to ${BRAND.name}` : `Create your ${BRAND.name} account`}
         </h2>

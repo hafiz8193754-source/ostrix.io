@@ -119,7 +119,7 @@ export function BankTransferPanel({ appointment, bank, lastPayment, accessToken,
       <button
         onClick={submit}
         disabled={busy || reference.trim().length < 3 || !configured}
-        className="flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-black disabled:opacity-50"
+        className="flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-accent-fg disabled:opacity-50"
       >
         {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />} I&apos;ve paid — submit for verification
       </button>

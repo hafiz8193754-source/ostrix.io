@@ -54,7 +54,7 @@ export function PharmacyFinder({ accessToken, medicineList }: { accessToken: str
   return (
     <div data-testid="pharmacy-finder" className="flex flex-col gap-3 print:hidden">
       <div className="flex flex-wrap gap-2">
-        <button data-testid="find-pharmacy" onClick={locate} className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-black">
+        <button data-testid="find-pharmacy" onClick={locate} className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-accent-fg">
           <MapPin className="h-3.5 w-3.5" /> Find nearby pharmacy
         </button>
         <button data-testid="copy-medicines" onClick={copyList} className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-text-secondary">
@@ -96,7 +96,7 @@ export function PharmacyFinder({ accessToken, medicineList }: { accessToken: str
                     </div>
                     <div className="mt-1 flex flex-wrap gap-2">
                       {p.phone ? (
-                        <a data-testid="pharmacy-call" href={`tel:${p.phone.split(/[;,/]/)[0].replace(/[^\d+]/g, "")}`} className="flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 font-medium text-black">
+                        <a data-testid="pharmacy-call" href={`tel:${p.phone.split(/[;,/]/)[0].replace(/[^\d+]/g, "")}`} className="flex items-center gap-1 rounded-md bg-accent px-2.5 py-1 font-medium text-accent-fg">
                           <Phone className="h-3 w-3" /> {p.phone.split(/[;,/]/)[0].trim()}
                         </a>
                       ) : (

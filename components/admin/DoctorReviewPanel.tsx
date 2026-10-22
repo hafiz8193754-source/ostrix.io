@@ -116,7 +116,7 @@ export function DoctorReviewPanel({ doctor, accessToken, onReviewed }: DoctorRev
                 key={doc.key}
                 disabled={!path || previewLoading === path}
                 onClick={() => path && openDocument(path)}
-                className="flex items-center justify-between rounded-lg border border-border bg-bg-surface px-3 py-2 text-xs text-text-secondary hover:border-accent hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex items-center justify-between rounded-2xl border border-border bg-bg-surface shadow-card px-3 py-2 text-xs text-text-secondary hover:border-accent hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {doc.label}
                 {previewLoading === path ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
@@ -128,7 +128,7 @@ export function DoctorReviewPanel({ doctor, accessToken, onReviewed }: DoctorRev
 
       {/* Right — checklist + actions */}
       <div className="flex flex-col gap-4">
-        <div className="rounded-xl border border-border bg-bg-surface p-4">
+        <div className="rounded-2xl border border-border bg-bg-surface shadow-card p-4">
           <p className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-text-muted">
             Verification checklist
             <a
@@ -146,7 +146,7 @@ export function DoctorReviewPanel({ doctor, accessToken, onReviewed }: DoctorRev
         {error && <p className="text-xs text-red-500">{error}</p>}
 
         {pendingAction ? (
-          <div className="flex flex-col gap-2 rounded-xl border border-border bg-bg-surface p-4">
+          <div className="flex flex-col gap-2 rounded-2xl border border-border bg-bg-surface shadow-card p-4">
             <p className="text-xs font-medium text-text-primary">
               {pendingAction === "request_info" && "What's needed from the doctor?"}
               {pendingAction === "reject" && "Reason for rejection"}

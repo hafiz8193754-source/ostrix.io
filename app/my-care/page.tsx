@@ -89,7 +89,7 @@ export default function MyCarePage() {
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="font-display text-2xl font-bold text-text-primary">My care</h1>
-        <Link href="/triage" data-testid="find-doctor" className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-black">
+        <Link href="/triage" data-testid="find-doctor" className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-fg">
           <Stethoscope className="h-4 w-4" /> Find a doctor for my symptoms
         </Link>
       </div>
@@ -114,7 +114,7 @@ export default function MyCarePage() {
                   const pay = PAYMENT_LABEL[a.payment_status];
                   const showPay = a.status !== "cancelled" && ["unpaid", "rejected", "pending"].includes(a.payment_status) && a.fee_pkr > 0;
                   return (
-                    <div key={a.id} className="flex flex-col gap-2 rounded-lg border border-border bg-bg-surface px-4 py-3">
+                    <div key={a.id} className="flex flex-col gap-2 rounded-2xl border border-border bg-bg-surface shadow-card px-4 py-3">
                     <div data-testid="my-appointment" className="flex flex-wrap items-center justify-between gap-2 text-sm">
                       <div>
                         <p className="font-medium text-text-primary">{d ? `Dr. ${d.full_name.replace(/^dr\.?\s+/i, "")}` : "Doctor"}</p>
@@ -136,7 +136,7 @@ export default function MyCarePage() {
                     {["pending", "confirmed", "in_progress"].includes(a.status) && (
                       <div className="flex flex-wrap gap-2">
                         {a.type === "online" && (
-                          <Link data-testid="join-video-visit" href={`/visit/${a.id}`} className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-black">
+                          <Link data-testid="join-video-visit" href={`/visit/${a.id}`} className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-accent-fg">
                             <Video className="h-3.5 w-3.5" /> Join video visit
                           </Link>
                         )}

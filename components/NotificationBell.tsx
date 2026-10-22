@@ -67,7 +67,7 @@ export function NotificationBell({ accessToken }: NotificationBellProps) {
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
-          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-black">
+          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-accent-fg">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}

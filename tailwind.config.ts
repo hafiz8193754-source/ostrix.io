@@ -18,6 +18,13 @@ const config: Config = {
           DEFAULT: "var(--accent)",
           hover: "var(--accent-hover)",
           glow: "var(--accent-glow)",
+          fg: "var(--accent-fg)",
+          soft: "var(--accent-soft)",
+        },
+        warm: {
+          DEFAULT: "var(--warm)",
+          strong: "var(--warm-strong)",
+          soft: "var(--warm-soft)",
         },
         text: {
           primary: "var(--text-primary)",
@@ -29,7 +36,14 @@ const config: Config = {
           subtle: "var(--border-subtle)",
         },
       },
+      fontFamily: {
+        display: ["var(--font-display)", "system-ui", "sans-serif"],
+        sans: ["var(--font-body)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "Consolas", "monospace"],
+      },
       borderRadius: {
+        xl: "16px",
+        "2xl": "20px",
         lg: "12px",
         md: "10px",
         sm: "8px",

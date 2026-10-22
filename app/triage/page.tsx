@@ -119,7 +119,7 @@ export default function TriagePage() {
         </Link>
       </div>
       <div>
-        <h1 className="font-display text-2xl font-bold text-text-primary">Find the right doctor</h1>
+        <h1 className="font-display text-3xl font-bold text-text-primary sm:text-4xl">Find the right doctor</h1>
         <p className="text-sm text-text-secondary">Type or speak your symptoms — English, اردو or Roman Urdu all work.</p>
       </div>
 
@@ -130,7 +130,7 @@ export default function TriagePage() {
           onChange={(e) => setSymptoms(e.target.value)}
           rows={4}
           placeholder="e.g. mujhe 3 din se bukhar aur gale mein dard hai"
-          className="w-full rounded-xl border border-border bg-bg-surface p-3 text-sm text-text-primary outline-none focus:border-accent"
+          className="w-full rounded-2xl border border-border bg-bg-surface p-4 text-[15px] text-text-primary shadow-card outline-none transition-all focus:border-accent focus:ring-4 focus:ring-accent-glow"
         />
         <div className="flex items-center gap-2">
           {session && <VoiceRecordButton accessToken={session.access_token} onTranscribed={(x) => setSymptoms((s) => (s ? `${s} ${x}` : x))} />}
@@ -138,7 +138,7 @@ export default function TriagePage() {
             data-testid="triage-submit"
             onClick={analyse}
             disabled={loading || symptoms.trim().length < 3}
-            className="flex h-10 items-center gap-2 rounded-xl bg-accent px-4 text-sm font-medium text-black disabled:opacity-40"
+            className="flex h-10 items-center gap-2 rounded-xl bg-accent px-5 text-sm font-semibold text-accent-fg shadow-card transition-all hover:bg-accent-hover hover:shadow-lift disabled:opacity-40"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Stethoscope className="h-4 w-4" />} Find a doctor
           </button>
@@ -153,7 +153,7 @@ export default function TriagePage() {
 
       {result && t && !result.emergency && (
         <div className="flex flex-col gap-4">
-          <div data-testid="triage-result" className="flex flex-col gap-2 rounded-xl border border-border bg-bg-surface p-4">
+          <div data-testid="triage-result" className="flex flex-col gap-2 rounded-2xl border border-border bg-bg-surface shadow-card p-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-display text-lg font-bold text-text-primary">{t.specialty}</span>
               <span className={`rounded-full px-2 py-0.5 text-xs capitalize ${URGENCY_STYLE[t.urgency] || ""}`}>{t.urgency}</span>

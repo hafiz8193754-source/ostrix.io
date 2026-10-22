@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  ArrowRight, BadgeCheck, FileSignature, Lock, MapPin, MessageSquareText, Mic, PhoneCall,
-  ShieldCheck, Sparkles, Stethoscope, UserRoundCheck, Video,
+  ArrowRight, BadgeCheck, Check, FileSignature, Lock, MapPin, MessageSquareText, Mic, PhoneCall,
+  ShieldCheck, Siren, Sparkles, Stethoscope, UserRoundCheck, Video,
 } from "lucide-react";
 
 import { BRAND } from "@/lib/brand";
@@ -50,31 +50,84 @@ const FAQS = [
   { q: "I'm a doctor — can I join?", a: "Yes. Register with your PMDC number and credentials. Our team verifies your details before your profile goes live." },
 ];
 
-function Section({ id, eyebrow, title, children }: { id: string; eyebrow: string; title: string; children: React.ReactNode }) {
+
+function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-20 px-5 py-16 sm:py-20">
-      <div className="mx-auto max-w-6xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">{eyebrow}</p>
-        <h2 id={`${id}-title`} className="font-display mt-2 max-w-2xl text-3xl font-bold text-text-primary sm:text-4xl">{title}</h2>
-        <div className="mt-10">{children}</div>
+    <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+      <span aria-hidden className="h-px w-6 bg-accent" /> {children}
+    </p>
+  );
+}
+
+function HeroMock() {
+  return (
+    <div aria-hidden className="relative mx-auto h-[440px] w-full max-w-[460px] sm:h-[480px]">
+      {/* Symptom card */}
+      <div className="home-reveal home-delay-1 absolute left-0 top-0 w-[78%] rounded-2xl border border-border bg-bg-surface p-4 shadow-lift">
+        <div className="flex items-center gap-2 text-xs font-semibold text-text-secondary">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft"><Stethoscope className="h-3.5 w-3.5 text-accent" /></span>
+          Symptom check
+        </div>
+        <p className="mt-3 rounded-xl bg-bg-elevated px-3 py-2.5 text-sm text-text-primary">“Bukhar aur gale mein dard, 3 din se.”</p>
+        <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-accent/30 bg-accent-soft px-3 py-2 text-xs text-text-primary">
+          <Sparkles className="h-3.5 w-3.5 shrink-0 text-accent" /> Suggested specialist: <b className="font-semibold">General Physician</b>
+        </div>
       </div>
-    </section>
+
+      {/* Call card */}
+      <div className="home-reveal home-delay-2 absolute right-0 top-[34%] w-[66%] overflow-hidden rounded-2xl border border-border bg-[#0B2A27] shadow-lift">
+        <div className="relative h-32 bg-[radial-gradient(circle_at_30%_40%,#14b8a6_0%,transparent_55%),radial-gradient(circle_at_80%_70%,#f59e0b55_0%,transparent_50%)]">
+          <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white">
+            <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-red-400" /> In-app video visit
+          </span>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/15 ring-4 ring-white/10"><Video className="h-6 w-6 text-white" /></span>
+          </div>
+        </div>
+        <div className="flex items-center justify-center gap-2 bg-[#0B2A27] p-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10"><Mic className="h-3.5 w-3.5 text-white" /></span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10"><Video className="h-3.5 w-3.5 text-white" /></span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500"><PhoneCall className="h-3.5 w-3.5 rotate-[135deg] text-white" /></span>
+        </div>
+      </div>
+
+      {/* Prescription card */}
+      <div className="home-reveal home-delay-3 absolute bottom-0 left-[6%] w-[72%] rounded-2xl border border-border bg-bg-surface p-4 shadow-lift">
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-2 text-xs font-semibold text-text-secondary"><FileSignature className="h-4 w-4 text-accent" /> Prescription</span>
+          <span className="flex items-center gap-1 rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent"><BadgeCheck className="h-3 w-3" /> Signed</span>
+        </div>
+        <div className="mt-3 space-y-1.5">
+          <div className="h-2 w-4/5 rounded-full bg-bg-overlay" />
+          <div className="h-2 w-3/5 rounded-full bg-bg-overlay" />
+          <div className="h-2 w-2/3 rounded-full bg-bg-overlay" />
+        </div>
+        <div className="mt-3 flex items-center justify-between border-t border-border-subtle pt-2.5 text-[10px] text-text-muted">
+          <span className="font-mono">Verify code</span>
+          <span className="flex items-center gap-1 text-warm-strong"><MapPin className="h-3 w-3" /> Nearby pharmacies</span>
+        </div>
+      </div>
+      <div className="home-float absolute -right-2 top-2 hidden rounded-full border border-border bg-bg-surface px-3 py-1.5 text-[11px] font-medium shadow-card sm:flex sm:items-center sm:gap-1.5">
+        <ShieldCheck className="h-3.5 w-3.5 text-accent" /> Reviewed by your doctor
+      </div>
+    </div>
   );
 }
 
 export default function Landing() {
+  const [f0, f1, f2, f3] = FEATURES;
   return (
-    <div className="min-h-screen bg-bg-base text-text-primary">
+    <div className="min-h-screen text-text-primary">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-bg-surface focus:px-3 focus:py-2">Skip to content</a>
 
-      <header className="sticky top-0 z-40 border-b border-border-subtle bg-bg-base/85 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-border-subtle/70 bg-bg-base/75 backdrop-blur-lg">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
           <Link href="/" aria-label={`${BRAND.name} home`}><OstrixLogo size="sm" withWordmark /></Link>
-          <nav aria-label="Main" className="hidden items-center gap-6 text-sm text-text-secondary md:flex">
-            <a href="#how-it-works" className="hover:text-text-primary">How it works</a>
-            <a href="#features" className="hover:text-text-primary">Why Ostrix</a>
-            <a href="#for-doctors" className="hover:text-text-primary">For doctors</a>
-            <a href="#faq" className="hover:text-text-primary">FAQ</a>
+          <nav aria-label="Main" className="hidden items-center gap-7 text-sm font-medium text-text-secondary md:flex">
+            <a href="#how-it-works" className="transition-colors hover:text-accent">How it works</a>
+            <a href="#features" className="transition-colors hover:text-accent">Why Ostrix</a>
+            <a href="#for-doctors" className="transition-colors hover:text-accent">For doctors</a>
+            <a href="#faq" className="transition-colors hover:text-accent">FAQ</a>
           </nav>
           <HeaderActions />
         </div>
@@ -82,143 +135,186 @@ export default function Landing() {
 
       <main id="main">
         {/* Hero */}
-        <section className="relative overflow-hidden px-5 pb-16 pt-14 sm:pb-24 sm:pt-20">
-          <div aria-hidden className="pointer-events-none absolute -top-40 left-1/2 h-[480px] w-[900px] -translate-x-1/2 rounded-full bg-accent-glow blur-3xl" />
-          <div className="relative mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.15fr_1fr]">
+        <section className="relative overflow-hidden bg-mesh px-5 pb-20 pt-12 sm:pb-28 sm:pt-20">
+          <div aria-hidden className="bg-grid pointer-events-none absolute inset-0 opacity-70" />
+          <div className="relative mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[1.1fr_1fr]">
             <div className="home-reveal">
-              <p className="inline-flex items-center gap-2 rounded-full border border-border bg-bg-surface px-3 py-1 text-xs font-medium text-text-secondary">
-                <BadgeCheck className="h-3.5 w-3.5 text-accent" aria-hidden /> PMDC-verified doctors · Pakistan
+              <p className="inline-flex items-center gap-2 rounded-full border border-accent/20 bg-bg-surface/80 px-3 py-1.5 text-xs font-semibold text-accent shadow-card backdrop-blur">
+                <BadgeCheck className="h-3.5 w-3.5" aria-hidden /> PMDC-verified doctors · Made for Pakistan
               </p>
-              <h1 className="font-display mt-5 text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
-                See a real doctor online, <span className="text-accent">from home.</span>
+              <h1 className="font-display mt-6 text-[2.6rem] font-extrabold leading-[1.02] sm:text-6xl xl:text-[4.25rem]">
+                A real doctor,<br /><span className="text-gradient whitespace-nowrap">right from home.</span>
               </h1>
-              <p className="mt-5 max-w-xl text-lg text-text-secondary">
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-text-secondary">
                 Describe your symptoms, get matched to the right specialist, consult by in-app video or audio, and receive a prescription your doctor has digitally signed.
               </p>
-              <p lang="ur" dir="rtl" className="mt-2 text-base text-text-muted">{BRAND.urdu}</p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg" className="shadow-glow">
-                  <Link href="/triage">Check symptoms <ArrowRight className="ml-1.5 h-4 w-4" aria-hidden /></Link>
+              <p lang="ur" dir="rtl" className="mt-2 max-w-xl text-base text-text-muted">{BRAND.urdu}</p>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <Button asChild size="lg">
+                  <Link href="/triage">Check symptoms <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden /></Link>
                 </Button>
                 <Button asChild size="lg" variant="outline">
                   <Link href="/studio">Book a doctor</Link>
                 </Button>
               </div>
-              <p className="mt-4 text-xs text-text-muted">Emergency? Call <a href="tel:1122" className="font-semibold text-text-secondary underline">1122</a> — Ostrix is not for emergencies.</p>
+              <ul className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm text-text-secondary">
+                <li className="flex items-center gap-1.5"><Check className="h-4 w-4 text-accent" aria-hidden /> Doctor signs every prescription</li>
+                <li className="flex items-center gap-1.5"><Check className="h-4 w-4 text-accent" aria-hidden /> English, اردو, Roman Urdu</li>
+              </ul>
+              <p className="mt-5 inline-flex items-center gap-2 rounded-lg bg-warm-soft px-3 py-2 text-xs text-text-secondary">
+                <Siren className="h-3.5 w-3.5 text-warm-strong" aria-hidden /> Emergency? Call <a href="tel:1122" className="font-semibold text-warm-strong underline">1122</a> — Ostrix is not for emergencies.
+              </p>
               <QuickActions />
             </div>
-
-            {/* Illustrative product card (no fake data) */}
-            <div className="home-reveal home-delay-1 relative mx-auto w-full max-w-md" aria-hidden>
-              <div className="rounded-2xl border border-border bg-bg-surface p-5 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.18)]">
-                <div className="flex items-center gap-2 text-sm font-medium"><Stethoscope className="h-4 w-4 text-accent" /> Symptom check</div>
-                <div className="mt-4 rounded-lg bg-bg-elevated p-3 text-sm text-text-secondary">“Fever and sore throat for 3 days, painful swallowing.”</div>
-                <div className="mt-3 flex items-start gap-2 rounded-lg border border-border-subtle p-3 text-sm">
-                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                  <span className="text-text-secondary">Suggested: <span className="font-medium text-text-primary">General Physician</span>. A doctor will review your case.</span>
-                </div>
-                <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-text-secondary">
-                  <div className="rounded-lg border border-border-subtle p-3"><Video className="mx-auto mb-1 h-4 w-4 text-accent" />Video</div>
-                  <div className="rounded-lg border border-border-subtle p-3"><Mic className="mx-auto mb-1 h-4 w-4 text-accent" />Voice notes</div>
-                  <div className="rounded-lg border border-border-subtle p-3"><FileSignature className="mx-auto mb-1 h-4 w-4 text-accent" />Signed Rx</div>
-                </div>
-              </div>
-              <div className="home-float absolute -bottom-5 -left-3 flex items-center gap-2 rounded-xl border border-border bg-bg-surface px-3 py-2 text-xs shadow-lg sm:-left-8">
-                <ShieldCheck className="h-4 w-4 text-green-600" /> Signed by your doctor
-              </div>
-            </div>
+            <HeroMock />
           </div>
         </section>
 
-        <div className="border-y border-border-subtle bg-bg-surface">
-          <Section id="how-it-works" eyebrow="How it works" title="From symptoms to a signed prescription in four steps">
-            <ol className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* How it works — timeline */}
+        <section id="how-it-works" aria-labelledby="hiw-title" className="scroll-mt-20 border-y border-border-subtle bg-bg-surface px-5 py-20 sm:py-28">
+          <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.8fr_1.2fr]">
+            <div className="lg:sticky lg:top-28 lg:self-start">
+              <Eyebrow>How it works</Eyebrow>
+              <h2 id="hiw-title" className="font-display mt-3 text-3xl font-bold sm:text-5xl">From symptoms to a signed prescription</h2>
+              <p className="mt-4 max-w-md text-text-secondary">Four simple steps. AI helps organise things; your doctor makes every medical decision.</p>
+              <Button asChild className="mt-7"><Link href="/triage">Start now <ArrowRight className="h-4 w-4" aria-hidden /></Link></Button>
+            </div>
+            <ol className="relative space-y-5 before:absolute before:bottom-8 before:left-[23px] before:top-8 before:w-px before:bg-gradient-to-b before:from-accent before:via-accent/40 before:to-warm sm:space-y-6">
               {STEPS.map(({ icon: Icon, title, body }, i) => (
-                <li key={title} className="home-card relative rounded-xl border border-border bg-bg-base p-5">
-                  <span className="font-display absolute right-4 top-3 text-3xl font-bold text-border">{i + 1}</span>
-                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-glow"><Icon className="h-5 w-5 text-accent" aria-hidden /></span>
-                  <h3 className="mt-4 font-semibold">{title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-text-secondary">{body}</p>
+                <li key={title} className="home-card relative flex gap-5 rounded-2xl border border-border bg-bg-base p-5 sm:p-6">
+                  <span className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-fg shadow-card">
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </span>
+                  <div>
+                    <p className="text-xs font-semibold text-accent">Step {i + 1}</p>
+                    <h3 className="font-display mt-0.5 text-lg font-semibold">{title}</h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">{body}</p>
+                  </div>
                 </li>
               ))}
             </ol>
-            <p className="mt-6 flex items-start gap-2 text-sm text-text-muted">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> AI assists with organising information only. Diagnosis and prescriptions are always made by your doctor.
-            </p>
-          </Section>
-        </div>
+          </div>
+        </section>
 
-        <Section id="features" eyebrow="Why Ostrix" title="Care you can trust">
-          <ul className="grid gap-5 sm:grid-cols-2">
-            {FEATURES.map(({ icon: Icon, title, body }) => (
-              <li key={title} className="home-card flex gap-4 rounded-xl border border-border bg-bg-surface p-5">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-accent-glow"><Icon className="h-5 w-5 text-accent" aria-hidden /></span>
-                <div>
-                  <h3 className="font-semibold">{title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">{body}</p>
+        {/* Features — bento */}
+        <section id="features" aria-labelledby="features-title" className="scroll-mt-20 px-5 py-20 sm:py-28">
+          <div className="mx-auto max-w-6xl">
+            <div className="max-w-2xl">
+              <Eyebrow>Why Ostrix</Eyebrow>
+              <h2 id="features-title" className="font-display mt-3 text-3xl font-bold sm:text-5xl">Care you can actually trust</h2>
+            </div>
+            <ul className="mt-12 grid gap-5 md:grid-cols-3 md:grid-rows-2">
+              <li className="home-card relative overflow-hidden rounded-3xl bg-accent p-7 text-accent-fg shadow-lift md:col-span-2 md:row-span-1">
+                <div aria-hidden className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10" />
+                <f0.icon className="h-8 w-8" aria-hidden />
+                <h3 className="font-display mt-6 text-2xl font-bold">{f0.title}</h3>
+                <p className="mt-2 max-w-md text-[15px] leading-relaxed opacity-90">{f0.body}</p>
+              </li>
+              <li className="home-card rounded-3xl border border-border bg-bg-surface p-7 shadow-card md:row-span-2">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-warm-soft"><f1.icon className="h-6 w-6 text-warm-strong" aria-hidden /></span>
+                <h3 className="font-display mt-6 text-xl font-bold">{f1.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-text-secondary">{f1.body}</p>
+                <div aria-hidden className="mt-8 space-y-2 rounded-2xl bg-bg-elevated p-4">
+                  {["Name", "Phone", "CNIC"].map((k) => (
+                    <div key={k} className="flex items-center justify-between text-xs">
+                      <span className="text-text-muted">{k}</span>
+                      <span className="rounded bg-bg-overlay px-2 py-0.5 font-mono text-text-secondary">••••••</span>
+                    </div>
+                  ))}
+                  <p className="pt-1 text-[11px] text-text-muted">Personal details are removed before AI assistance.</p>
                 </div>
               </li>
-            ))}
-          </ul>
-        </Section>
+              {[f2, f3].map((f) => (
+                <li key={f.title} className="home-card rounded-3xl border border-border bg-bg-surface p-7 shadow-card">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft"><f.icon className="h-6 w-6 text-accent" aria-hidden /></span>
+                  <h3 className="font-display mt-6 text-xl font-bold">{f.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-text-secondary">{f.body}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
 
-        <section id="for-doctors" aria-labelledby="for-doctors-title" className="scroll-mt-20 px-5 pb-16 sm:pb-20">
-          <div className="mx-auto grid max-w-6xl items-center gap-8 rounded-2xl border border-border bg-bg-elevated p-8 sm:p-12 lg:grid-cols-[1.4fr_1fr]">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">For doctors</p>
-              <h2 id="for-doctors-title" className="font-display mt-2 text-3xl font-bold sm:text-4xl">Consult patients online, on your schedule</h2>
-              <ul className="mt-5 space-y-2 text-sm text-text-secondary">
-                <li className="flex gap-2"><BadgeCheck className="h-4 w-4 shrink-0 text-accent" aria-hidden /> Register with your PMDC number — verified by our team</li>
-                <li className="flex gap-2"><BadgeCheck className="h-4 w-4 shrink-0 text-accent" aria-hidden /> In-app calls with optional transcription and AI-drafted notes you edit</li>
-                <li className="flex gap-2"><BadgeCheck className="h-4 w-4 shrink-0 text-accent" aria-hidden /> Sign prescriptions digitally; patients and pharmacies can verify them</li>
+        {/* For doctors */}
+        <section id="for-doctors" aria-labelledby="for-doctors-title" className="scroll-mt-20 px-5 pb-20 sm:pb-28">
+          <div className="relative mx-auto grid max-w-6xl items-center gap-10 overflow-hidden rounded-3xl bg-[#0B2A27] p-8 text-white shadow-lift sm:p-14 lg:grid-cols-[1.3fr_1fr]">
+            <div aria-hidden className="absolute inset-0 bg-[radial-gradient(60%_80%_at_100%_0%,rgba(20,184,166,0.35),transparent_60%),radial-gradient(40%_60%_at_0%_100%,rgba(245,158,11,0.18),transparent_60%)]" />
+            <div className="relative">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-300">For doctors</p>
+              <h2 id="for-doctors-title" className="font-display mt-3 text-3xl font-bold sm:text-5xl">Consult patients online, on your schedule</h2>
+              <ul className="mt-6 space-y-3 text-[15px] text-white/80">
+                {["Register with your PMDC number, verified by our team", "In-app calls with optional transcription and AI-drafted notes you edit", "Sign prescriptions digitally; patients and pharmacies can verify them"].map((t) => (
+                  <li key={t} className="flex gap-3"><Check className="mt-0.5 h-5 w-5 shrink-0 text-teal-300" aria-hidden /> {t}</li>
+                ))}
               </ul>
             </div>
-            <div className="flex flex-col gap-3 lg:items-end">
-              <Button asChild size="lg"><Link href="/doctor/register">Register as a doctor <ArrowRight className="ml-1.5 h-4 w-4" aria-hidden /></Link></Button>
-              <Link href="/doctor/dashboard" className="text-sm text-text-secondary underline-offset-4 hover:underline">Already registered? Doctor dashboard</Link>
+            <div className="relative flex flex-col gap-4 lg:items-end">
+              <Link href="/doctor/register" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-7 text-[15px] font-semibold text-[#0B2A27] shadow-card transition-all hover:-translate-y-0.5 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B2A27]">
+                Register as a doctor <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
+              <Link href="/doctor/dashboard" className="text-sm text-white/70 underline-offset-4 hover:text-white hover:underline">Already registered? Doctor dashboard</Link>
             </div>
           </div>
         </section>
 
-        <div className="border-t border-border-subtle bg-bg-surface">
-          <Section id="faq" eyebrow="FAQ" title="Questions, answered">
-            <div className="grid gap-3 lg:grid-cols-2">
+        {/* FAQ */}
+        <section id="faq" aria-labelledby="faq-title" className="scroll-mt-20 border-t border-border-subtle bg-bg-surface px-5 py-20 sm:py-28">
+          <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.8fr_1.2fr]">
+            <div>
+              <Eyebrow>FAQ</Eyebrow>
+              <h2 id="faq-title" className="font-display mt-3 text-3xl font-bold sm:text-5xl">Questions, answered</h2>
+              <p className="mt-4 text-text-secondary">Still unsure? Start with a free symptom check, with no commitment.</p>
+            </div>
+            <div className="space-y-3">
               {FAQS.map(({ q, a }) => (
-                <details key={q} className="group rounded-xl border border-border bg-bg-base p-5 open:border-accent/50">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [&::-webkit-details-marker]:hidden">
+                <details key={q} className="group rounded-2xl border border-border bg-bg-base p-5 transition-colors open:border-accent/40 open:bg-accent-soft/40">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [&::-webkit-details-marker]:hidden">
                     {q}
-                    <span aria-hidden className="text-xl leading-none text-text-muted transition-transform group-open:rotate-45">+</span>
+                    <span aria-hidden className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bg-surface text-lg leading-none text-accent shadow-card transition-transform group-open:rotate-45">+</span>
                   </summary>
                   <p className="mt-3 text-sm leading-relaxed text-text-secondary">{a}</p>
                 </details>
               ))}
             </div>
-          </Section>
-        </div>
+          </div>
+        </section>
 
-        <section className="px-5 py-16 text-center">
-          <h2 className="font-display text-3xl font-bold">Not feeling well?</h2>
-          <p className="mx-auto mt-3 max-w-md text-text-secondary">Start with a quick symptom check — it takes a couple of minutes.</p>
-          <Button asChild size="lg" className="mt-6 shadow-glow"><Link href="/triage">Check symptoms <ArrowRight className="ml-1.5 h-4 w-4" aria-hidden /></Link></Button>
+        {/* CTA band */}
+        <section className="px-5 py-20">
+          <div className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl bg-gradient-to-br from-accent via-[#0E8A7F] to-[#0B5E57] px-6 py-14 text-center text-white shadow-lift sm:py-20">
+            <div aria-hidden className="bg-grid absolute inset-0 opacity-20" />
+            <div className="relative">
+              <h2 className="font-display text-3xl font-bold sm:text-5xl">Not feeling well?</h2>
+              <p className="mx-auto mt-4 max-w-md text-white/85">Start with a quick symptom check. It takes a couple of minutes.</p>
+              <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+                <Link href="/triage" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-7 text-[15px] font-semibold text-[#0B5E57] shadow-card transition-all hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-accent">
+                  Check symptoms <ArrowRight className="h-4 w-4" aria-hidden />
+                </Link>
+                <Link href="/studio" className="inline-flex h-12 items-center justify-center rounded-xl border border-white/40 px-7 text-[15px] font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                  Book a doctor
+                </Link>
+              </div>
+            </div>
+          </div>
         </section>
       </main>
 
-      <footer className="border-t border-border-subtle bg-bg-surface px-5 py-10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+      <footer className="border-t border-border-subtle bg-bg-surface px-5 py-12">
+        <div className="mx-auto flex max-w-6xl flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <OstrixLogo size="sm" withWordmark />
-            <p className="mt-2 max-w-xs text-xs text-text-muted">Online doctor consultations in Pakistan. Not for emergencies — call 1122.</p>
+            <p className="mt-3 max-w-xs text-sm text-text-muted">Online doctor consultations in Pakistan. Not for emergencies: call 1122.</p>
           </div>
-          <nav aria-label="Footer" className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-text-secondary sm:grid-cols-3 sm:gap-x-10">
-            <Link href="/triage" className="hover:text-text-primary">Check symptoms</Link>
-            <Link href="/studio" className="hover:text-text-primary">Book a doctor</Link>
-            <Link href="/my-care" className="hover:text-text-primary">My care</Link>
-            <Link href="/login" className="hover:text-text-primary">Sign in</Link>
-            <Link href="/doctor/register" className="hover:text-text-primary">For doctors</Link>
-            <a href="#faq" className="hover:text-text-primary">FAQ</a>
+          <nav aria-label="Footer" className="grid grid-cols-2 gap-x-10 gap-y-2.5 text-sm text-text-secondary sm:grid-cols-3">
+            <Link href="/triage" className="hover:text-accent">Check symptoms</Link>
+            <Link href="/studio" className="hover:text-accent">Book a doctor</Link>
+            <Link href="/my-care" className="hover:text-accent">My care</Link>
+            <Link href="/login" className="hover:text-accent">Sign in</Link>
+            <Link href="/doctor/register" className="hover:text-accent">For doctors</Link>
+            <a href="#faq" className="hover:text-accent">FAQ</a>
           </nav>
         </div>
-        <p className="mx-auto mt-8 max-w-6xl text-xs text-text-muted">© {new Date().getFullYear()} {BRAND.name}</p>
+        <p className="mx-auto mt-10 max-w-6xl border-t border-border-subtle pt-6 text-xs text-text-muted">© {new Date().getFullYear()} {BRAND.name}</p>
       </footer>
     </div>
   );

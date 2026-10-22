@@ -157,7 +157,7 @@ export default function DoctorRegister() {
         <CheckCircle2 className="h-10 w-10 text-emerald-500" />
         <h1 className="font-display text-xl font-bold text-text-primary">You're already registered</h1>
         <p className="max-w-md text-sm text-text-secondary">Head to your dashboard to check your verification status.</p>
-        <button onClick={() => router.push("/doctor/dashboard")} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black">
+        <button onClick={() => router.push("/doctor/dashboard")} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg">
           Go to dashboard
         </button>
       </div>
@@ -173,7 +173,7 @@ export default function DoctorRegister() {
           Our team will verify your PMDC registration within 24-48 hours. You'll be notified once verified. Until then you
           can complete your profile but cannot accept patients or sign prescriptions.
         </p>
-        <button onClick={() => router.push("/doctor/dashboard")} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black">
+        <button onClick={() => router.push("/doctor/dashboard")} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg">
           Go to dashboard
         </button>
       </div>

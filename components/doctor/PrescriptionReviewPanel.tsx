@@ -122,7 +122,7 @@ export function PrescriptionReviewPanel({ prescription, doctor, accessToken, onR
           setSubmitting(false);
           return;
         }
-        body.edited_prescription = draft;
+        body.edited_prescription = { ...draft, advice: draft.advice.map((a) => a.trim()).filter(Boolean), medications: draft.medications.filter((m) => m.name.trim()) };
         body.signature_data = signatureData;
         await maybeSaveSignature(signatureData);
       } else {
@@ -151,8 +151,16 @@ export function PrescriptionReviewPanel({ prescription, doctor, accessToken, onR
     setDraft((d) => ({ ...d, medications: d.medications.map((m, idx) => (idx === i ? { ...m, ...patch } : m)) }));
   }
 
+  const isRevision = (prescription.version ?? 1) > 1;
   return (
-    <div className="flex flex-col gap-3">
+    <div data-testid="rx-review" className="flex flex-col gap-3">
+      <div data-testid="ai-draft-banner" className="flex items-start gap-2 rounded-xl border-2 border-amber-500 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-900">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+        <span>
+          <b>AI draft – needs doctor review.</b> Grok generated this from the visit. Check and edit every field; nothing reaches the patient until you approve &amp; sign.
+          {isRevision && <> This is <b>version {prescription.version}</b>; signing it replaces the earlier signed version.</>}
+        </span>
+      </div>
       {context?.appointment?.ai_symptom_analysis && Object.keys(context.appointment.ai_symptom_analysis).length > 0 && (
         <CollapsiblePanel title="Patient intake">
           <pre className="whitespace-pre-wrap break-words font-sans">{JSON.stringify(context.appointment.ai_symptom_analysis, null, 2)}</pre>
@@ -166,7 +174,7 @@ export function PrescriptionReviewPanel({ prescription, doctor, accessToken, onR
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="flex flex-col gap-2 rounded-xl border border-border bg-bg-elevated p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">AI Draft (read-only)</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Original AI draft (read-only)</p>
           <p className="text-sm text-text-primary">Diagnosis: {source.diagnosis}</p>
           <ul className="flex flex-col gap-1 text-sm text-text-secondary">
             {source.medications.map((m, i) => (
@@ -203,11 +211,14 @@ export function PrescriptionReviewPanel({ prescription, doctor, accessToken, onR
           <div className="flex flex-col gap-2">
             {draft.medications.map((m, i) => (
               <div key={i} className="grid grid-cols-2 gap-1.5 rounded-lg border border-border p-2">
-                <input value={m.name} onChange={(e) => updateMed(i, { name: e.target.value })} placeholder="Name" className="col-span-2 h-8 rounded border border-border bg-bg-elevated px-2 text-xs text-text-primary outline-none focus-visible:border-accent" />
-                <input value={m.dosage} onChange={(e) => updateMed(i, { dosage: e.target.value })} placeholder="Dosage" className="h-8 rounded border border-border bg-bg-elevated px-2 text-xs text-text-primary outline-none focus-visible:border-accent" />
+                <input data-testid="med-name" value={m.name} onChange={(e) => updateMed(i, { name: e.target.value })} placeholder="Name" className="col-span-2 h-8 rounded border border-border bg-bg-elevated px-2 text-xs text-text-primary outline-none focus-visible:border-accent" />
+                <input data-testid="med-dosage" value={m.dosage} onChange={(e) => updateMed(i, { dosage: e.target.value })} placeholder="Dosage" className="h-8 rounded border border-border bg-bg-elevated px-2 text-xs text-text-primary outline-none focus-visible:border-accent" />
                 <input value={m.frequency} onChange={(e) => updateMed(i, { frequency: e.target.value })} placeholder="Frequency" className="h-8 rounded border border-border bg-bg-elevated px-2 text-xs text-text-primary outline-none focus-visible:border-accent" />
                 <input value={m.duration} onChange={(e) => updateMed(i, { duration: e.target.value })} placeholder="Duration" className="h-8 rounded border border-border bg-bg-elevated px-2 text-xs text-text-primary outline-none focus-visible:border-accent" />
                 <input value={m.instructions} onChange={(e) => updateMed(i, { instructions: e.target.value })} placeholder="Instructions" className="h-8 rounded border border-border bg-bg-elevated px-2 text-xs text-text-primary outline-none focus-visible:border-accent" />
+                <button type="button" onClick={() => setDraft((d) => ({ ...d, medications: d.medications.filter((_, idx) => idx !== i) }))} className="col-span-2 justify-self-end text-[11px] text-red-600 hover:underline">
+                  Remove
+                </button>
               </div>
             ))}
             <button
@@ -218,6 +229,23 @@ export function PrescriptionReviewPanel({ prescription, doctor, accessToken, onR
               + Add medication
             </button>
           </div>
+
+          <label className="flex flex-col gap-1 text-xs text-text-secondary">
+            Treatment plan
+            <textarea data-testid="rx-plan-input" rows={3} value={draft.treatment_plan || ""} onChange={(e) => setDraft((d) => ({ ...d, treatment_plan: e.target.value }))} className="rounded-md border border-border bg-bg-elevated px-2.5 py-2 text-sm text-text-primary outline-none focus-visible:border-accent" />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-text-secondary">
+            Advice / instructions (one per line)
+            <textarea rows={3} value={draft.advice.join("\n")} onChange={(e) => setDraft((d) => ({ ...d, advice: e.target.value.split("\n") }))} className="rounded-md border border-border bg-bg-elevated px-2.5 py-2 text-sm text-text-primary outline-none focus-visible:border-accent" />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-text-secondary">
+            Follow-up
+            <input data-testid="rx-followup-input" value={draft.follow_up} onChange={(e) => setDraft((d) => ({ ...d, follow_up: e.target.value }))} className="h-9 rounded-md border border-border bg-bg-elevated px-2.5 text-sm text-text-primary outline-none focus-visible:border-accent" />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-text-secondary">
+            Go to emergency if…
+            <input value={draft.emergency_instructions} onChange={(e) => setDraft((d) => ({ ...d, emergency_instructions: e.target.value }))} className="h-9 rounded-md border border-border bg-bg-elevated px-2.5 text-sm text-text-primary outline-none focus-visible:border-accent" />
+          </label>
 
           <div>
             <p className="mb-1 text-xs text-text-secondary">Signature</p>
@@ -234,9 +262,9 @@ export function PrescriptionReviewPanel({ prescription, doctor, accessToken, onR
             {useSavedSignature && doctor.signature_url ? (
               savedSignaturePreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={savedSignaturePreview} alt="Saved signature" className="h-[120px] w-[320px] rounded-lg border border-border bg-white object-contain" />
+                <img src={savedSignaturePreview} alt="Saved signature" className="h-[120px] w-full max-w-[320px] rounded-lg border border-border bg-white object-contain" />
               ) : (
-                <div className="flex h-[120px] w-[320px] items-center justify-center rounded-lg border border-border bg-white text-xs text-text-muted">Loading…</div>
+                <div className="flex h-[120px] w-full max-w-[320px] items-center justify-center rounded-lg border border-border bg-white text-xs text-text-muted">Loading…</div>
               )
             ) : (
               <>
@@ -250,7 +278,7 @@ export function PrescriptionReviewPanel({ prescription, doctor, accessToken, onR
           </div>
 
           <label className="flex items-start gap-2 rounded-lg border border-border bg-bg-elevated p-2.5 text-xs text-text-primary">
-            <input type="checkbox" checked={responsibilityChecked} onChange={(e) => setResponsibilityChecked(e.target.checked)} className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-accent" />
+            <input data-testid="rx-responsibility" type="checkbox" checked={responsibilityChecked} onChange={(e) => setResponsibilityChecked(e.target.checked)} className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-accent" />
             I have reviewed this prescription and take responsibility for it.
           </label>
 
@@ -275,6 +303,7 @@ export function PrescriptionReviewPanel({ prescription, doctor, accessToken, onR
           ) : (
             <div className="flex items-center gap-2">
               <button
+                data-testid="rx-approve"
                 onClick={() => review("approve")}
                 disabled={submitting || !responsibilityChecked}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"

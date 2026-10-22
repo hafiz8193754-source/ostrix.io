@@ -41,20 +41,24 @@ function anonKey(): string {
 
 const authOptions = { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } as const;
 
+// Never let Next's data cache serve stale DB/storage reads (it caches GET
+// fetches by default in some route types, e.g. the public verify route).
+const noStoreFetch: typeof fetch = (input, init) => fetch(input, { ...init, cache: "no-store" });
+
 export function createAnonAuthClient(): SupabaseClient {
   return createClient(supabaseUrl(), anonKey(), { auth: authOptions });
 }
 
 export function createUserClient(accessToken: string): SupabaseClient {
   return createClient(supabaseUrl(), anonKey(), {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    global: { headers: { Authorization: `Bearer ${accessToken}` }, fetch: noStoreFetch },
     auth: authOptions,
   });
 }
 
 export function createServiceClient(): SupabaseClient {
   if (!hasServiceRoleKey()) throw new ServerNotConfiguredError();
-  return createClient(supabaseUrl(), process.env.SUPABASE_SERVICE_ROLE_KEY!.trim(), { auth: authOptions });
+  return createClient(supabaseUrl(), process.env.SUPABASE_SERVICE_ROLE_KEY!.trim(), { auth: authOptions, global: { fetch: noStoreFetch } });
 }
 
 // The client route handlers must thread through. Service role when configured

@@ -407,11 +407,12 @@ export interface PrescriptionData {
   advice: string[];
   follow_up: string;
   emergency_instructions: string;
+  treatment_plan?: string;
   drug_interaction_warnings: string[];
   contraindication_flags: string[];
 }
 
-export type PrescriptionStatus = "draft" | "pending_review" | "approved" | "rejected" | "revised";
+export type PrescriptionStatus = "draft" | "pending_review" | "approved" | "rejected" | "revised" | "superseded";
 
 export interface Prescription {
   id: string;
@@ -430,4 +431,14 @@ export interface Prescription {
   warnings: string[];
   drug_interactions: string[];
   created_at: string;
+  version?: number;
+  supersedes_id?: string | null;
+  superseded_by?: string | null;
+  content_hash?: string | null;
+  verify_code?: string | null;
+  signed_by_doctor_id?: string | null;
+  signed_doctor_name?: string | null;
+  signed_doctor_specialty?: string | null;
+  signed_pmdc_number?: string | null;
+  signature_path?: string | null;
 }

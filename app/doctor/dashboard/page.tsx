@@ -101,6 +101,8 @@ export default function DoctorDashboard() {
   const [startingId, setStartingId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [phoneCallAvailable, setPhoneCallAvailable] = useState(false);
+  const [signed, setSigned] = useState<Prescription[]>([]);
+  const [revisingId, setRevisingId] = useState<string | null>(null);
 
   useDoctorPresence(doctor ? session : null);
 
@@ -121,6 +123,7 @@ export default function DoctorDashboard() {
     setUpcoming(data.upcomingAppointments || []);
     setPending(data.pendingPrescriptions || []);
     setPhoneCallAvailable(!!data.phoneCallAvailable);
+    setSigned(data.signedPrescriptions || []);
     return data as { pendingPrescriptions?: Prescription[] };
   }, [session]);
 
@@ -359,6 +362,45 @@ export default function DoctorDashboard() {
         )}
         {selected && !isVerified && <p className="mt-4 text-sm text-yellow-700">Verification is required before you can review and sign this draft.</p>}
       </section>
+
+      {signed.length > 0 && (
+        <section>
+          <h2 className="mb-2 font-display text-lg font-bold text-text-primary">Signed prescriptions</h2>
+          <p className="mb-2 text-xs text-text-muted">Signed prescriptions are locked. To change one, open a new version — the old one stays valid until you sign the new version.</p>
+          <div className="flex flex-col gap-2">
+            {signed.map((p) => (
+              <div key={p.id} data-testid="signed-row" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-bg-surface px-4 py-2.5 text-sm">
+                <span className="min-w-0 text-text-primary">
+                  {p.final_prescription?.diagnosis || "Prescription"} <span className="text-xs text-text-muted">· v{p.version ?? 1} · {p.verify_code ? <Link className="font-mono underline" href={`/verify/${p.verify_code}`}>{p.verify_code}</Link> : "legacy"}</span>
+                </span>
+                {isVerified && (
+                  <button
+                    data-testid="new-version"
+                    disabled={revisingId === p.id}
+                    onClick={async () => {
+                      setRevisingId(p.id);
+                      const res = await fetch("/api/doctor/prescription/review", {
+                        method: "POST",
+                        headers: { "content-type": "application/json", authorization: `Bearer ${session!.access_token}` },
+                        body: JSON.stringify({ prescription_id: p.id, action: "revise" }),
+                      });
+                      const d = await res.json().catch(() => ({}));
+                      setRevisingId(null);
+                      if (res.ok) {
+                        await load();
+                        setSelected(d.prescription);
+                      } else setNotice(d.error || "Could not open a new version.");
+                    }}
+                    className="rounded-full border border-accent px-2.5 py-0.5 text-xs font-medium text-accent disabled:opacity-50"
+                  >
+                    New version
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="min-w-0">
         <h2 className="mb-2 font-display text-lg font-bold text-text-primary">Weekly schedule</h2>

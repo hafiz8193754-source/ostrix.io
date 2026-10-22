@@ -58,6 +58,7 @@ Return ONLY valid JSON:
   "advice": ["lifestyle/care advice items"],
   "follow_up": "when to come back",
   "emergency_instructions": "when to go to ER",
+  "treatment_plan": "short step-by-step treatment plan for the doctor to review (rest, fluids, monitoring, when to escalate)",
   "drug_interaction_warnings": ["any interactions with existing medications"],
   "contraindication_flags": ["any flags based on patient profile, and anything uncertain that needs the doctor's attention"]
 }`;

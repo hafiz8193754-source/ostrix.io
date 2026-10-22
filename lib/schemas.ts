@@ -78,13 +78,14 @@ const prescriptionDataSchema = z.object({
   advice: z.array(z.string()).default([]),
   follow_up: z.string().default(""),
   emergency_instructions: z.string().default(""),
+  treatment_plan: z.string().max(4000).optional(),
   drug_interaction_warnings: z.array(z.string()).default([]),
   contraindication_flags: z.array(z.string()).default([]),
 });
 
 export const prescriptionReviewSchema = z.object({
   prescription_id: z.string().uuid(),
-  action: z.enum(["approve", "reject", "edit"]),
+  action: z.enum(["approve", "reject", "edit", "revise"]),
   edited_prescription: prescriptionDataSchema.optional(),
   rejection_reason: z.string().trim().max(1000).optional(),
   signature_data: z.string().optional(),

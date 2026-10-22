@@ -15,5 +15,12 @@ export async function GET(request: Request) {
   if (!doctor) return NextResponse.json({ doctor: null });
 
   const { todaysAppointments, upcomingAppointments, pendingPrescriptions, recentConsultations } = await getDashboardData(db, doctor.id);
-  return NextResponse.json({ doctor, todaysAppointments, upcomingAppointments, pendingPrescriptions, recentConsultations, phoneCallAvailable: twilioConfigured() });
+  const { data: signedPrescriptions } = await db
+    .from("prescriptions")
+    .select("id, status, version, verify_code, doctor_signed_at, final_prescription")
+    .eq("doctor_id", doctor.id)
+    .eq("status", "approved")
+    .order("doctor_signed_at", { ascending: false })
+    .limit(10);
+  return NextResponse.json({ doctor, todaysAppointments, upcomingAppointments, pendingPrescriptions, recentConsultations, signedPrescriptions: signedPrescriptions || [], phoneCallAvailable: twilioConfigured() });
 }

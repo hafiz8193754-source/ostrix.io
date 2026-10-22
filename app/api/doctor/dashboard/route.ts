@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/serverAuth";
 import { getDoctorByUserId, getDashboardData } from "@/lib/clinical";
+import { twilioConfigured } from "@/lib/twilio";
 
 // Not in the literal spec, but the dashboard page needs a single call that
 // (a) tells it whether the logged-in user is a registered doctor at all, and
@@ -14,5 +15,5 @@ export async function GET(request: Request) {
   if (!doctor) return NextResponse.json({ doctor: null });
 
   const { todaysAppointments, upcomingAppointments, pendingPrescriptions, recentConsultations } = await getDashboardData(db, doctor.id);
-  return NextResponse.json({ doctor, todaysAppointments, upcomingAppointments, pendingPrescriptions, recentConsultations });
+  return NextResponse.json({ doctor, todaysAppointments, upcomingAppointments, pendingPrescriptions, recentConsultations, phoneCallAvailable: twilioConfigured() });
 }

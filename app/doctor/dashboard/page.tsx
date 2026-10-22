@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Session as SupabaseSession } from "@supabase/supabase-js";
 
@@ -13,7 +14,7 @@ import { TodaySlotsTimeline } from "@/components/doctor/TodaySlotsTimeline";
 import { VisitPanel } from "@/components/doctor/VisitPanel";
 import { useDoctorPresence } from "@/hooks/useDoctorPresence";
 import { CLINICAL_DISCLAIMER } from "@/lib/clinicalSafety";
-import { AlertTriangle, Ban, Clock, HelpCircle, Loader2, PhoneCall, Play, ShieldCheck, Stethoscope } from "lucide-react";
+import { AlertTriangle, Ban, Clock, HelpCircle, Loader2, PhoneCall, Play, ShieldCheck, Stethoscope, Video } from "lucide-react";
 import type { Appointment, Doctor, Prescription } from "@/types";
 
 type UpcomingAppointment = Appointment & {
@@ -99,6 +100,7 @@ export default function DoctorDashboard() {
   const [visit, setVisit] = useState<{ appointment: UpcomingAppointment; consultationId: string } | null>(null);
   const [startingId, setStartingId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [phoneCallAvailable, setPhoneCallAvailable] = useState(false);
 
   useDoctorPresence(doctor ? session : null);
 
@@ -118,6 +120,7 @@ export default function DoctorDashboard() {
     setAppointments(data.todaysAppointments || []);
     setUpcoming(data.upcomingAppointments || []);
     setPending(data.pendingPrescriptions || []);
+    setPhoneCallAvailable(!!data.phoneCallAvailable);
     return data as { pendingPrescriptions?: Prescription[] };
   }, [session]);
 
@@ -200,7 +203,7 @@ export default function DoctorDashboard() {
           <OstrixLogo size="sm" withWordmark />
         </div>
         <div className="text-right">
-          <p className="text-sm font-medium text-text-primary">Dr. {doctor.full_name}</p>
+          <p className="text-sm font-medium text-text-primary">Dr. {doctor.full_name.replace(/^\s*dr\.?\s+/i, "")}</p>
           <p className="text-xs text-text-muted">
             {doctor.specialization.replace(/_/g, " ")} · PMDC #{doctor.pmdc_number}
           </p>
@@ -235,6 +238,12 @@ export default function DoctorDashboard() {
                       {a.patient_phone ? ` · ${a.patient_phone}` : ""}
                     </p>
                     {a.symptoms_description && <p className="mt-1 line-clamp-2 text-xs text-text-secondary">{a.symptoms_description}</p>}
+                    {typeof (a.ai_symptom_analysis as Record<string, unknown> | null)?.triage_summary === "string" && (
+                      <p data-testid="triage-summary" className="mt-1 line-clamp-3 text-xs text-text-secondary">
+                        <span className="font-medium text-text-primary">AI triage{(a.ai_symptom_analysis as Record<string, unknown>).urgency ? ` (${String((a.ai_symptom_analysis as Record<string, unknown>).urgency)})` : ""}:</span>{" "}
+                        {String((a.ai_symptom_analysis as Record<string, unknown>).triage_summary)}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-bg-elevated px-2 py-0.5 text-xs capitalize text-text-secondary">{a.status.replace(/_/g, " ")}</span>
@@ -254,13 +263,22 @@ export default function DoctorDashboard() {
                           {a.status === "in_progress" ? "Continue visit" : "Start visit"}
                         </button>
                         {a.type === "online" && (
+                          <Link
+                            href={`/visit/${a.id}`}
+                            data-testid="join-video-visit"
+                            className="flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-black"
+                          >
+                            <Video className="h-3 w-3" /> Join video visit
+                          </Link>
+                        )}
+                        {a.type === "online" && phoneCallAvailable && (
                           <button
                             onClick={() => startCall(a.id)}
                             disabled={callingId === a.id || calledId === a.id}
-                            className="flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-black disabled:opacity-60"
+                            className="flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-text-secondary disabled:opacity-60"
                           >
                             {callingId === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <PhoneCall className="h-3 w-3" />}
-                            {calledId === a.id ? "Calling…" : "Call"}
+                            {calledId === a.id ? "Calling…" : "Phone call"}
                           </button>
                         )}
                         <button onClick={() => setAppointmentStatus(a.id, "completed")} className="text-xs font-medium text-text-secondary">

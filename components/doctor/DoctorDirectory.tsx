@@ -167,7 +167,7 @@ export function DoctorDirectory({ doctors, aiAnalysis, symptomsDescription, sess
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="flex items-center gap-1.5 text-sm font-semibold text-text-primary">
-                Dr. {doctor.full_name}
+                Dr. {doctor.full_name.replace(/^\s*dr\.?\s+/i, "")}
                 <span className="flex items-center gap-0.5 text-[10px] font-medium text-accent" title="PMDC Verified">
                   <BadgeCheck className="h-3.5 w-3.5" /> Verified
                 </span>

@@ -15,7 +15,7 @@ async function removeFolder(admin: SupabaseClient, bucket: string, folder: strin
 // Deletes the Supabase auth user, but medical records are kept anonymized:
 // anonymize_account() strips identifiers from the patient/doctor rows and
 // detaches them (user_id -> NULL), so appointments, consultations,
-// prescriptions, payments and the audit log survive without personal data.
+// prescriptions, payments, voice notes and the audit log survive without personal data.
 // Chats, profile, notifications and personal files are still wiped.
 export async function POST(request: Request) {
   const auth = await getUserFromRequest(request);

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { getUserFromRequest, hasServiceRoleKey, createServiceClient } from "@/lib/serverAuth";
+import { getUserFromRequest, createUserClient } from "@/lib/serverAuth";
 import { destinationFor, inferRole, loadRoleFacts } from "@/lib/accountRole";
 
 export const dynamic = "force-dynamic";
@@ -9,9 +9,12 @@ export const dynamic = "force-dynamic";
 async function facts(request: Request) {
   const auth = await getUserFromRequest(request);
   if (!auth) return null;
-  const admin = hasServiceRoleKey() ? createServiceClient() : null;
-  const f = await loadRoleFacts(auth.db, admin, auth.user.id);
-  return { auth, f };
+  // Own-row reads/writes go through the caller's JWT so RLS (and the
+  // account_role lock trigger) apply. Admins can read their own
+  // platform_admins row under RLS, which is all the admin check needs.
+  const db = createUserClient(auth.token);
+  const f = await loadRoleFacts(db, db, auth.user.id);
+  return { auth: { ...auth, db }, f };
 }
 
 // GET: the caller's role (null = not chosen yet) and where to send them.

@@ -188,7 +188,7 @@ export default function Studio() {
         />
         <main className="flex min-w-0 flex-1 flex-col">
           {doctorLive ? (
-            <div className="flex flex-1 flex-col overflow-y-auto p-6 sm:p-8">
+            <div className="flex flex-1 flex-col overflow-y-auto px-4 py-5 sm:p-8">
               <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
                 <DoctorHealthAssistant
                   key={doctorResetKey}
@@ -208,7 +208,7 @@ export default function Studio() {
               </div>
             </div>
           ) : (
-            <div ref={scrollRef} className="flex flex-1 flex-col gap-5 overflow-y-auto p-6 sm:p-8">
+            <div ref={scrollRef} className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 py-5 sm:p-8">
               <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
                 {doctorMsgs.length === 0 && <p className="pt-8 text-center text-sm text-text-muted">No messages in this visit.</p>}
                 {doctorMsgs.map((m, i) =>

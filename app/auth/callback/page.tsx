@@ -19,7 +19,11 @@ export default function AuthCallback() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const hash = new URLSearchParams(window.location.hash.slice(1));
-    const next = safeNext(params.get("next"));
+    const rawNext = params.get("next");
+    const safe = safeNext(rawNext, "/welcome");
+    // Everything except the role screen itself goes through /welcome so
+    // first-time accounts pick Patient/Doctor.
+    const next = safe.startsWith("/welcome") ? safe : `/welcome?next=${encodeURIComponent(safe)}`;
     const oauthErr = params.get("error_description") || hash.get("error_description");
     if (oauthErr) return setErr(oauthErr);
 

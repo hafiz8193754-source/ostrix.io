@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Brain, Utensils, Sparkles, Bone, Baby, Flower2, Eye, Smile, HeartPulse, type LucideIcon } from "lucide-react";
+import { ArrowUp, ChevronLeft, Brain, Utensils, Sparkles, Bone, Baby, Flower2, Eye, Smile, HeartPulse, type LucideIcon } from "lucide-react";
 
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
 import { VoiceRecordButton } from "@/components/shared/VoiceRecordButton";
@@ -54,23 +54,20 @@ const CATEGORIES: Category[] = [
   { label: "Mental Health", whatsWrong: "Stress, anxiety, or low mood", icon: HeartPulse },
 ];
 
+// The question bubble. Fixed-size avatar column and a min-w-0 text column so
+// every question lines up the same way regardless of length or viewport.
 function Bubble({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-start gap-2.5 self-start">
-      <div className="mt-1 shrink-0">
+    <div className="flex w-full items-start gap-2.5">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center">
         <OstrixLogo size="xs" />
       </div>
-      <div className="max-w-[560px] rounded-[18px] rounded-bl-sm border border-border bg-bg-surface px-5 py-3.5 text-[15px] leading-[1.65] text-text-primary">
+      <div
+        data-testid="intake-question"
+        className="min-w-0 max-w-[560px] flex-1 break-words rounded-[18px] rounded-tl-sm border border-border bg-bg-surface px-4 py-3 text-[15px] leading-[1.6] text-text-primary sm:px-5 sm:py-3.5"
+      >
         {children}
       </div>
-    </div>
-  );
-}
-
-function UserBubble({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={cn("self-end rounded-[18px] rounded-br-sm bg-bg-elevated px-5 py-3.5 text-[15px] leading-[1.65] text-text-primary", className)}>
-      {children}
     </div>
   );
 }
@@ -78,24 +75,88 @@ function UserBubble({ children, className }: { children: React.ReactNode; classN
 function StepShell({ children, stepKey }: { children: React.ReactNode; stepKey: number }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    ref.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, []);
   return (
     <motion.div
       key={stepKey}
       ref={ref}
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="flex flex-col gap-3"
+      transition={{ duration: 0.25 }}
+      className="flex w-full max-w-[600px] flex-col gap-3"
     >
       {children}
     </motion.div>
   );
 }
 
-const inputClass =
-  "h-11 flex-1 rounded-xl border border-border bg-bg-elevated px-4 text-sm text-text-primary placeholder:text-text-muted outline-none focus-visible:border-accent";
+// Text answer row: input, mic and Send live inside one rounded field so the
+// Send button never gets pushed to the screen edge. 44px tap targets, and the
+// row respects the iOS safe area at the bottom.
+function Composer({
+  value,
+  onChange,
+  onSubmit,
+  placeholder,
+  accessToken,
+  allowEmpty = false,
+  inputMode,
+  voice = true,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSubmit: () => void;
+  placeholder: string;
+  accessToken: string;
+  allowEmpty?: boolean;
+  inputMode?: "numeric" | "text";
+  voice?: boolean;
+}) {
+  const disabled = !allowEmpty && !value.trim();
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!disabled) onSubmit();
+      }}
+      className="flex w-full items-center gap-1.5 rounded-2xl border border-border bg-bg-elevated p-1.5 pl-4 focus-within:border-accent"
+      style={{ marginBottom: "env(safe-area-inset-bottom)" }}
+    >
+      <input
+        autoFocus
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        inputMode={inputMode}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        className="h-11 min-w-0 flex-1 bg-transparent text-[15px] text-text-primary outline-none placeholder:text-text-muted"
+      />
+      {voice && <VoiceRecordButton accessToken={accessToken} onTranscribed={(t) => onChange(value ? `${value} ${t}` : t)} />}
+      <button
+        type="submit"
+        disabled={disabled}
+        aria-label="Send"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-fg transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <ArrowUp className="h-5 w-5" aria-hidden />
+      </button>
+    </form>
+  );
+}
+
+const choiceClass =
+  "min-h-[44px] flex-1 rounded-xl border border-border bg-bg-surface px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:border-accent hover:bg-accent-glow";
+
+function SkipButton({ onClick, label = "None" }: { onClick: () => void; label?: string }) {
+  return (
+    <button type="button" onClick={onClick} className="min-h-[44px] self-start rounded-lg px-2 text-sm font-medium text-text-secondary hover:text-accent">
+      {label}
+    </button>
+  );
+}
+
+const TOTAL_STEPS = 9;
 
 interface PatientIntakeFlowProps {
   accessToken: string;
@@ -188,170 +249,104 @@ export function PatientIntakeFlow({ accessToken, onComplete }: PatientIntakeFlow
   }
 
   return (
-    <div className="flex flex-col gap-4 pb-4">
-      {step === 1 ? (
+    <div className="flex w-full flex-col gap-4 pb-4">
+      {/* One question at a time: only the current step is rendered. */}
+      <div className="flex items-center justify-between text-xs text-text-muted" aria-live="polite">
+        <span data-testid="intake-progress">Question {step} of {TOTAL_STEPS}</span>
+        {step > 1 && (
+          <button type="button" onClick={() => goTo(step - 1)} className="flex min-h-[44px] items-center gap-1 px-1 font-medium text-text-secondary hover:text-accent">
+            <ChevronLeft className="h-4 w-4" aria-hidden /> Back
+          </button>
+        )}
+      </div>
+
+      {step === 1 && (
         <StepShell stepKey={1}>
-          <Bubble>What's wrong? Pick a category, or describe it yourself.</Bubble>
-          <div className="grid max-w-[560px] grid-cols-1 gap-2 sm:grid-cols-2">
+          <Bubble>What&apos;s wrong? Pick a category, or describe it yourself.</Bubble>
+          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
             {CATEGORIES.map((c) => (
               <button
                 key={c.label}
+                type="button"
                 onClick={() => selectCategory(c)}
-                className="flex items-center gap-2.5 rounded-xl border border-border bg-bg-surface p-3 text-left text-sm text-text-primary transition-colors hover:border-accent hover:bg-accent-glow"
+                className="flex min-h-[44px] items-center gap-2.5 rounded-xl border border-border bg-bg-surface px-3 py-2.5 text-left text-sm text-text-primary transition-colors hover:border-accent hover:bg-accent-glow"
               >
-                <c.icon className="h-4 w-4 shrink-0 text-accent" /> {c.label}
+                <c.icon className="h-4 w-4 shrink-0 text-accent" aria-hidden /> {c.label}
               </button>
             ))}
           </div>
-          <div className="flex max-w-[560px] items-center gap-2">
-            <input
-              value={whatsWrongDraft}
-              onChange={(e) => setWhatsWrongDraft(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitWhatsWrong()}
-              placeholder="Or describe it in your own words…"
-              className={inputClass}
-            />
-            <VoiceRecordButton accessToken={accessToken} onTranscribed={(t) => setWhatsWrongDraft((d) => (d ? `${d} ${t}` : t))} />
-            <button onClick={submitWhatsWrong} disabled={!whatsWrongDraft.trim()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-accent-fg disabled:cursor-not-allowed disabled:opacity-40">
-              Send
-            </button>
-          </div>
+          <Composer value={whatsWrongDraft} onChange={setWhatsWrongDraft} onSubmit={submitWhatsWrong} placeholder="Or describe it in your own words…" accessToken={accessToken} />
         </StepShell>
-      ) : (
-        intake.whatsWrong && <UserBubble>{intake.whatsWrong}</UserBubble>
       )}
 
       {step === 2 && (
         <StepShell stepKey={2}>
           <Bubble>How long has this been going on?</Bubble>
-          <div className="flex max-w-[560px] items-center gap-2">
-            <input
-              autoFocus
-              value={durationDraft}
-              onChange={(e) => setDurationDraft(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitDuration()}
-              placeholder="e.g. 3 days, since this morning, 2 weeks"
-              className={inputClass}
-            />
-            <VoiceRecordButton accessToken={accessToken} onTranscribed={(t) => setDurationDraft((d) => (d ? `${d} ${t}` : t))} />
-            <button onClick={submitDuration} disabled={!durationDraft.trim()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-accent-fg disabled:cursor-not-allowed disabled:opacity-40">
-              Send
-            </button>
-          </div>
+          <Composer value={durationDraft} onChange={setDurationDraft} onSubmit={submitDuration} placeholder="e.g. 3 days, since this morning" accessToken={accessToken} />
         </StepShell>
       )}
-      {step > 2 && intake.duration && <UserBubble>{intake.duration}</UserBubble>}
 
       {step === 3 && (
         <StepShell stepKey={3}>
           <Bubble>How severe would you say it is?</Bubble>
-          <div className="flex max-w-[560px] gap-2">
-            {(["mild", "moderate", "severe"] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => selectSeverity(s)}
-                className="flex-1 rounded-xl border border-border bg-bg-surface px-4 py-3 text-sm font-medium capitalize text-text-primary hover:border-accent hover:bg-accent-glow"
-              >
-                {s}
+          <div className="flex w-full gap-2">
+            {(["mild", "moderate", "severe"] as const).map((sv) => (
+              <button key={sv} type="button" onClick={() => selectSeverity(sv)} className={cn(choiceClass, "capitalize")}>
+                {sv}
               </button>
             ))}
           </div>
         </StepShell>
       )}
-      {step > 3 && intake.severity && <UserBubble className="capitalize">{intake.severity}</UserBubble>}
 
       {step === 4 && (
         <StepShell stepKey={4}>
           <Bubble>Any fever?</Bubble>
-          <div className="flex max-w-[560px] gap-2">
-            <button onClick={() => selectFever(true)} className="flex-1 rounded-xl border border-border bg-bg-surface px-4 py-3 text-sm font-medium text-text-primary hover:border-accent hover:bg-accent-glow">
-              Yes
-            </button>
-            <button onClick={() => selectFever(false)} className="flex-1 rounded-xl border border-border bg-bg-surface px-4 py-3 text-sm font-medium text-text-primary hover:border-accent hover:bg-accent-glow">
-              No
-            </button>
+          <div className="flex w-full gap-2">
+            <button type="button" onClick={() => selectFever(true)} className={choiceClass}>Yes</button>
+            <button type="button" onClick={() => selectFever(false)} className={choiceClass}>No</button>
           </div>
         </StepShell>
       )}
-      {step > 4 && intake.hasFever !== null && <UserBubble>{intake.hasFever ? "Yes" : "No"}</UserBubble>}
 
       {step === 5 && (
         <StepShell stepKey={5}>
           <Bubble>Do you have any existing medical conditions? (diabetes, blood pressure, heart disease, etc.)</Bubble>
-          <div className="flex max-w-[560px] items-center gap-2">
-            <input autoFocus value={conditionsDraft} onChange={(e) => setConditionsDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitConditions()} placeholder="e.g. diabetes, high blood pressure" className={inputClass} />
-            <VoiceRecordButton accessToken={accessToken} onTranscribed={(t) => setConditionsDraft((d) => (d ? `${d} ${t}` : t))} />
-            <button onClick={() => submitConditions()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-accent-fg">
-              Send
-            </button>
-          </div>
-          <button onClick={() => submitConditions(true)} className="self-start text-xs font-medium text-text-secondary hover:text-accent">
-            None
-          </button>
+          <Composer value={conditionsDraft} onChange={setConditionsDraft} onSubmit={() => submitConditions()} placeholder="e.g. diabetes, high blood pressure" accessToken={accessToken} />
+          <SkipButton onClick={() => submitConditions(true)} />
         </StepShell>
       )}
-      {step > 5 && <UserBubble>{intake.existingConditions || "None"}</UserBubble>}
 
       {step === 6 && (
         <StepShell stepKey={6}>
           <Bubble>Are you currently taking any medicines?</Bubble>
-          <div className="flex max-w-[560px] items-center gap-2">
-            <input autoFocus value={medicinesDraft} onChange={(e) => setMedicinesDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitMedicines()} placeholder="e.g. Panadol, Augmentin" className={inputClass} />
-            <VoiceRecordButton accessToken={accessToken} onTranscribed={(t) => setMedicinesDraft((d) => (d ? `${d} ${t}` : t))} />
-            <button onClick={() => submitMedicines()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-accent-fg">
-              Send
-            </button>
-          </div>
-          <button onClick={() => submitMedicines(true)} className="self-start text-xs font-medium text-text-secondary hover:text-accent">
-            None
-          </button>
+          <Composer value={medicinesDraft} onChange={setMedicinesDraft} onSubmit={() => submitMedicines()} placeholder="e.g. Panadol, Augmentin" accessToken={accessToken} />
+          <SkipButton onClick={() => submitMedicines(true)} />
         </StepShell>
       )}
-      {step > 6 && <UserBubble>{intake.currentMedicines || "None"}</UserBubble>}
 
       {step === 7 && (
         <StepShell stepKey={7}>
           <Bubble>Any known allergies — medicines, food, anything else?</Bubble>
-          <div className="flex max-w-[560px] items-center gap-2">
-            <input autoFocus value={allergiesDraft} onChange={(e) => setAllergiesDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitAllergies()} placeholder="e.g. penicillin" className={inputClass} />
-            <VoiceRecordButton accessToken={accessToken} onTranscribed={(t) => setAllergiesDraft((d) => (d ? `${d} ${t}` : t))} />
-            <button onClick={() => submitAllergies()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-accent-fg">
-              Send
-            </button>
-          </div>
-          <button onClick={() => submitAllergies(true)} className="self-start text-xs font-medium text-text-secondary hover:text-accent">
-            None
-          </button>
+          <Composer value={allergiesDraft} onChange={setAllergiesDraft} onSubmit={() => submitAllergies()} placeholder="e.g. penicillin" accessToken={accessToken} />
+          <SkipButton onClick={() => submitAllergies(true)} />
         </StepShell>
       )}
-      {step > 7 && <UserBubble>{intake.allergies || "None"}</UserBubble>}
 
       {step === 8 && (
         <StepShell stepKey={8}>
           <Bubble>What is your age?</Bubble>
-          <div className="flex max-w-[560px] items-center gap-2">
-            <input autoFocus value={ageDraft} onChange={(e) => setAgeDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitAge()} inputMode="numeric" placeholder="e.g. 34, or '2 months' for an infant" className={inputClass} />
-            <button onClick={submitAge} disabled={!ageDraft.trim()} className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-accent-fg disabled:cursor-not-allowed disabled:opacity-40">
-              Send
-            </button>
-          </div>
+          <Composer value={ageDraft} onChange={setAgeDraft} onSubmit={submitAge} placeholder="e.g. 34, or '2 months' for an infant" inputMode="numeric" voice={false} accessToken={accessToken} />
         </StepShell>
       )}
-      {step > 8 && intake.age && <UserBubble>{intake.age}</UserBubble>}
 
       {step === 9 && (
         <StepShell stepKey={9}>
           <Bubble>One last thing — are you currently pregnant?</Bubble>
-          <div className="flex max-w-[560px] gap-2">
-            <button onClick={() => selectPregnant(true)} className="flex-1 rounded-xl border border-border bg-bg-surface px-4 py-3 text-sm font-medium text-text-primary hover:border-accent hover:bg-accent-glow">
-              Yes
-            </button>
-            <button onClick={() => selectPregnant(false)} className="flex-1 rounded-xl border border-border bg-bg-surface px-4 py-3 text-sm font-medium text-text-primary hover:border-accent hover:bg-accent-glow">
-              No
-            </button>
-            <button onClick={() => selectPregnant(null)} className="flex-1 rounded-xl border border-border bg-bg-surface px-4 py-3 text-sm font-medium text-text-secondary hover:border-accent hover:text-text-primary">
-              Not applicable
-            </button>
+          <div className="flex w-full flex-wrap gap-2">
+            <button type="button" onClick={() => selectPregnant(true)} className={choiceClass}>Yes</button>
+            <button type="button" onClick={() => selectPregnant(false)} className={choiceClass}>No</button>
+            <button type="button" onClick={() => selectPregnant(null)} className={cn(choiceClass, "text-text-secondary")}>Not applicable</button>
           </div>
         </StepShell>
       )}

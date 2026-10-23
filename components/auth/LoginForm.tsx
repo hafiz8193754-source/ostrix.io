@@ -22,6 +22,11 @@ function sameSiteNext(): string {
   return safeNext(new URLSearchParams(window.location.search).get("next"));
 }
 
+function welcomePath(): string {
+  const raw = new URLSearchParams(window.location.search).get("next");
+  return raw ? `/welcome?next=${encodeURIComponent(safeNext(raw))}` : "/welcome";
+}
+
 export function LoginForm({ initialMode = "signin" }: { initialMode?: "signin" | "signup" } = {}) {
   const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">(initialMode);
@@ -42,11 +47,16 @@ export function LoginForm({ initialMode = "signin" }: { initialMode?: "signin" |
     const fn =
       mode === "signin"
         ? supabase.auth.signInWithPassword(values)
-        : supabase.auth.signUp(values);
+        : supabase.auth.signUp({
+            ...values,
+            options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(welcomePath())}` },
+          });
     const { data, error } = await fn;
     if (error) return setErr(error.message);
     if (mode === "signup" && !data.session) return setNotice("Check your email to confirm your account, then sign in.");
-    router.push(sameSiteNext());
+    // Role screen decides: first-timers pick Patient/Doctor, everyone else
+    // is forwarded to ?next= or their role's home.
+    router.push(welcomePath());
   }
 
   return (

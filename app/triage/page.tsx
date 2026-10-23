@@ -138,7 +138,7 @@ export default function TriagePage() {
             data-testid="triage-submit"
             onClick={analyse}
             disabled={loading || symptoms.trim().length < 3}
-            className="flex h-10 items-center gap-2 rounded-xl bg-accent px-5 text-sm font-semibold text-accent-fg shadow-card transition-all hover:bg-accent-hover hover:shadow-lift disabled:opacity-40"
+            className="flex h-11 items-center gap-2 rounded-xl bg-accent px-5 text-sm font-semibold text-accent-fg shadow-card transition-all hover:bg-accent-hover hover:shadow-lift disabled:opacity-40"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Stethoscope className="h-4 w-4" />} Find a doctor
           </button>

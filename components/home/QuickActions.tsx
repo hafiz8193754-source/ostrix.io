@@ -23,12 +23,19 @@ export function HeaderActions() {
       </Button>
     );
   }
+  // Signed-out (or still checking): always show both entry points. The home
+  // page never opens a sign-in prompt on its own.
   return (
-    <Button asChild size="sm" variant="outline">
-      <Link href="/login">
-        <LogIn className="mr-1.5 h-4 w-4" aria-hidden /> Sign in
-      </Link>
-    </Button>
+    <div className="flex items-center gap-2">
+      <Button asChild size="sm" variant="outline">
+        <Link href="/login">
+          <LogIn className="mr-1.5 h-4 w-4" aria-hidden /> Sign in
+        </Link>
+      </Button>
+      <Button asChild size="sm">
+        <Link href="/signup">Sign up</Link>
+      </Button>
+    </div>
   );
 }
 

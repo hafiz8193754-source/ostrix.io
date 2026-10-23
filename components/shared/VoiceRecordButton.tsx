@@ -17,7 +17,7 @@ export function VoiceRecordButton({ accessToken, onTranscribed }: VoiceRecordBut
   const { isRecording, isTranscribing, error, startRecording, stopRecording } = useVoiceRecorder({ accessToken, onTranscribed });
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="relative flex shrink-0 items-center">
       <button
         type="button"
         onPointerDown={startRecording}
@@ -25,7 +25,7 @@ export function VoiceRecordButton({ accessToken, onTranscribed }: VoiceRecordBut
         onPointerLeave={() => isRecording && stopRecording()}
         disabled={isTranscribing}
         className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors disabled:opacity-50",
+          "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors disabled:opacity-50",
           isRecording
             ? "animate-pulse border-red-500 bg-red-500/10 text-red-500"
             : "border-border bg-bg-elevated text-text-secondary hover:text-text-primary"
@@ -35,7 +35,7 @@ export function VoiceRecordButton({ accessToken, onTranscribed }: VoiceRecordBut
       >
         {isTranscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
       </button>
-      {error && <span className="text-[11px] text-red-500">{error}</span>}
+      {error && <span role="status" className="absolute right-0 top-full z-10 mt-1 whitespace-nowrap rounded bg-bg-surface px-1.5 text-[11px] text-red-500 shadow-card">{error}</span>}
     </div>
   );
 }

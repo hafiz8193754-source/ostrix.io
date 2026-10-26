@@ -66,6 +66,7 @@ export async function POST(request: Request) {
 }
 
 const PATIENT_STATUSES = new Set(["cancelled"]);
+const CONFIRMABLE_PAYMENT = new Set(["paid", "not_required"]);
 const DOCTOR_STATUSES = new Set(["confirmed", "in_progress", "completed", "cancelled", "no_show"]);
 
 export async function PATCH(request: Request) {
@@ -88,6 +89,13 @@ export async function PATCH(request: Request) {
   const allowed = isDoctor ? DOCTOR_STATUSES : PATIENT_STATUSES;
   if (!allowed.has(parsed.data.status))
     return NextResponse.json({ error: "You can't set that appointment status." }, { status: 403 });
+
+  // A booking can only be confirmed once its fee is paid (or no fee is due).
+  if (parsed.data.status === "confirmed" && !CONFIRMABLE_PAYMENT.has(parties.appointment.payment_status))
+    return NextResponse.json(
+      { error: "This booking can't be confirmed until the patient's payment is approved.", code: "payment_required" },
+      { status: 409 }
+    );
 
   const appointment = await updateAppointmentStatus(db, parsed.data.appointment_id, parsed.data.status);
   if (!appointment) return NextResponse.json({ error: "Could not update the appointment." }, { status: 500 });

@@ -252,11 +252,25 @@ export default function DoctorDashboard() {
                     <span className="rounded-full bg-bg-elevated px-2 py-0.5 text-xs capitalize text-text-secondary">{a.status.replace(/_/g, " ")}</span>
                     {isVerified && (
                       <>
-                        {a.status === "pending" && (
-                          <button onClick={() => setAppointmentStatus(a.id, "confirmed")} className="text-xs font-medium text-accent">
-                            Confirm
-                          </button>
-                        )}
+                        {a.status === "pending" &&
+                          (a.payment_status === "paid" || a.payment_status === "not_required" ? (
+                            <button onClick={() => setAppointmentStatus(a.id, "confirmed")} className="text-xs font-medium text-accent">
+                              Confirm
+                            </button>
+                          ) : (
+                            <>
+                              <span data-testid="awaiting-payment" className="rounded-full bg-warm-soft px-2 py-0.5 text-xs font-medium text-warm-strong">
+                                Awaiting payment
+                              </span>
+                              <button
+                                disabled
+                                title="You can confirm once the patient's payment is approved."
+                                className="cursor-not-allowed text-xs font-medium text-text-muted opacity-60"
+                              >
+                                Confirm
+                              </button>
+                            </>
+                          ))}
                         <button
                           onClick={() => startVisit(a)}
                           disabled={startingId === a.id}

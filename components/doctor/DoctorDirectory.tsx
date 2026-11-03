@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Star, Calendar, MessageCircle, Loader2, BadgeCheck, Bell, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { SlotPicker } from "@/components/booking/SlotPicker";
 import type { Appointment, Doctor, DoctorWithPresence } from "@/types";
 
 interface DoctorDirectoryProps {
@@ -35,22 +37,6 @@ function PresenceBadge({ presence }: { presence: DoctorWithPresence["presence"] 
 
 type FilterChip = "available_now" | "online" | "walk_in" | "any_time";
 
-const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-function nextAvailableDates(availableDays: string[]): { value: string; label: string }[] {
-  const out: { value: string; label: string }[] = [];
-  const today = new Date();
-  for (let i = 0; i < 14 && out.length < 5; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    const dayLabel = DAY_LABELS[d.getDay()];
-    if (availableDays.length === 0 || availableDays.some((a) => a.toLowerCase().startsWith(dayLabel.toLowerCase()))) {
-      out.push({ value: d.toISOString().slice(0, 10), label: `${dayLabel} ${d.getDate()}/${d.getMonth() + 1}` });
-    }
-  }
-  return out;
-}
-
 export function DoctorDirectory({ doctors, aiAnalysis, symptomsDescription, sessionId, api, onBooked }: DoctorDirectoryProps) {
   const [bookingDoctorId, setBookingDoctorId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -67,19 +53,19 @@ export function DoctorDirectory({ doctors, aiAnalysis, symptomsDescription, sess
   const [phone, setPhone] = useState("");
   const [allergies, setAllergies] = useState("");
   const [medications, setMedications] = useState("");
+  const [slotRefresh, setSlotRefresh] = useState(1);
 
   function openBooking(doctor: Doctor) {
     setBookingDoctorId(doctor.id);
     setError(null);
-    const dates = nextAvailableDates(doctor.available_days);
-    setDate(dates[0]?.value || "");
-    setTime(doctor.available_hours_start?.slice(0, 5) || "10:00");
+    setDate("");
+    setTime("");
     setType(doctor.accepts_online ? "online" : "walk_in");
   }
 
   async function confirmBooking(doctor: Doctor) {
     if (!name.trim() || !phone.trim() || !date || !time) {
-      setError("Fill in your name, phone, date, and time.");
+      setError("Pick a time slot and fill in your name and phone.");
       return;
     }
     setSubmitting(true);
@@ -106,6 +92,7 @@ export function DoctorDirectory({ doctors, aiAnalysis, symptomsDescription, sess
       setBookingDoctorId(null);
     } catch (e) {
       setError((e as Error).message);
+      setSlotRefresh((k) => k + 1);
     }
     setSubmitting(false);
   }
@@ -151,7 +138,7 @@ export function DoctorDirectory({ doctors, aiAnalysis, symptomsDescription, sess
             key={chip}
             onClick={() => setActiveFilter(chip)}
             className={cn(
-              "rounded-full border px-2.5 py-1 text-[11px] font-medium",
+              "min-h-[36px] rounded-full border px-3 py-1.5 text-xs font-medium",
               activeFilter === chip ? "border-accent bg-accent-glow text-accent" : "border-border bg-bg-elevated text-text-secondary"
             )}
           >
@@ -183,6 +170,7 @@ export function DoctorDirectory({ doctors, aiAnalysis, symptomsDescription, sess
             )}
           </div>
           <PresenceBadge presence={doctor.presence} />
+          <Link href={`/doctors/${doctor.id}`} className="self-start text-xs font-medium text-accent underline">View profile</Link>
           {doctor.clinic_name && <p className="text-xs text-text-muted">{doctor.clinic_name}, {doctor.city}</p>}
           <p className="text-xs text-text-secondary">
             Fee: PKR {doctor.consultation_fee_pkr.toLocaleString()} ·{" "}
@@ -190,16 +178,16 @@ export function DoctorDirectory({ doctors, aiAnalysis, symptomsDescription, sess
           </p>
 
           {bookingDoctorId !== doctor.id ? (
-            <div className="flex items-center gap-2 pt-1">
+            <div className="flex flex-wrap items-center gap-2 pt-1">
               {doctor.presence.is_bookable ? (
                 <button
                   onClick={() => openBooking(doctor)}
-                  className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-accent-fg hover:bg-accent-hover"
+                  className="flex items-center gap-1.5 rounded-lg bg-accent min-h-[44px] px-3 py-2 text-sm font-medium text-accent-fg hover:bg-accent-hover"
                 >
                   <Calendar className="h-3.5 w-3.5" /> Book Appointment
                 </button>
               ) : notifiedIds.includes(doctor.id) ? (
-                <span className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary">
+                <span className="flex items-center gap-1.5 rounded-lg border border-border min-h-[44px] px-3 py-2 text-sm font-medium text-text-secondary">
                   <Check className="h-3.5 w-3.5" /> We'll notify you
                 </span>
               ) : (
@@ -209,7 +197,7 @@ export function DoctorDirectory({ doctors, aiAnalysis, symptomsDescription, sess
                   </span>
                   <button
                     onClick={() => notifyMe(doctor)}
-                    className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:border-accent hover:text-text-primary"
+                    className="flex items-center gap-1.5 rounded-lg border border-border min-h-[44px] px-3 py-2 text-sm font-medium text-text-secondary hover:border-accent hover:text-text-primary"
                   >
                     <Bell className="h-3.5 w-3.5" /> Notify me
                   </button>
@@ -220,7 +208,7 @@ export function DoctorDirectory({ doctors, aiAnalysis, symptomsDescription, sess
                   href={`https://wa.me/${(doctor.whatsapp || doctor.phone).replace(/[^0-9]/g, "")}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:border-accent hover:text-text-primary"
+                  className="flex items-center gap-1.5 rounded-lg border border-border min-h-[44px] px-3 py-2 text-sm font-medium text-text-secondary hover:border-accent hover:text-text-primary"
                 >
                   <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
                 </a>
@@ -228,39 +216,40 @@ export function DoctorDirectory({ doctors, aiAnalysis, symptomsDescription, sess
             </div>
           ) : (
             <div className="flex flex-col gap-2 rounded-2xl border border-border bg-bg-surface shadow-card p-3">
-              <div className="grid grid-cols-2 gap-2">
-                <select value={date} onChange={(e) => setDate(e.target.value)} className="h-9 rounded-md border border-border bg-bg-elevated px-2 text-xs text-text-primary outline-none focus-visible:border-accent">
-                  {nextAvailableDates(doctor.available_days).map((d) => (
-                    <option key={d.value} value={d.value}>{d.label}</option>
-                  ))}
-                </select>
-                <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-9 rounded-md border border-border bg-bg-elevated px-2 text-xs text-text-primary outline-none focus-visible:border-accent" />
-              </div>
+              <SlotPicker
+                doctorId={doctor.id}
+                value={date && time ? { date, time } : null}
+                onChange={(v) => {
+                  setDate(v.date);
+                  setTime(v.time);
+                }}
+                refreshKey={slotRefresh}
+              />
               {doctor.accepts_online && doctor.accepts_walk_in && (
                 <div className="flex gap-1 rounded-md border border-border bg-bg-elevated p-0.5 text-xs">
-                  <button onClick={() => setType("online")} className={`flex-1 rounded px-2 py-1 ${type === "online" ? "bg-accent text-accent-fg" : "text-text-secondary"}`}>Online</button>
-                  <button onClick={() => setType("walk_in")} className={`flex-1 rounded px-2 py-1 ${type === "walk_in" ? "bg-accent text-accent-fg" : "text-text-secondary"}`}>Walk-in</button>
+                  <button onClick={() => setType("online")} className={`min-h-[40px] flex-1 rounded px-2 py-2 ${type === "online" ? "bg-accent text-accent-fg" : "text-text-secondary"}`}>Online</button>
+                  <button onClick={() => setType("walk_in")} className={`min-h-[40px] flex-1 rounded px-2 py-2 ${type === "walk_in" ? "bg-accent text-accent-fg" : "text-text-secondary"}`}>Walk-in</button>
                 </div>
               )}
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" className="h-9 rounded-md border border-border bg-bg-elevated px-2.5 text-xs text-text-primary placeholder:text-text-muted outline-none focus-visible:border-accent" />
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" className="h-11 rounded-lg border border-border bg-bg-elevated px-2.5 text-base text-text-primary placeholder:text-text-muted outline-none focus-visible:border-accent" />
               <div className="grid grid-cols-2 gap-2">
-                <input value={age} onChange={(e) => setAge(e.target.value)} placeholder="Age" inputMode="numeric" className="h-9 rounded-md border border-border bg-bg-elevated px-2.5 text-xs text-text-primary placeholder:text-text-muted outline-none focus-visible:border-accent" />
-                <select value={gender} onChange={(e) => setGender(e.target.value as typeof gender)} className="h-9 rounded-md border border-border bg-bg-elevated px-2 text-xs text-text-primary outline-none focus-visible:border-accent">
+                <input value={age} onChange={(e) => setAge(e.target.value)} placeholder="Age" inputMode="numeric" className="h-11 rounded-lg border border-border bg-bg-elevated px-2.5 text-base text-text-primary placeholder:text-text-muted outline-none focus-visible:border-accent" />
+                <select value={gender} onChange={(e) => setGender(e.target.value as typeof gender)} className="h-11 rounded-lg border border-border bg-bg-elevated px-2 text-base text-text-primary outline-none focus-visible:border-accent">
                   <option value="">Gender</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
                   <option value="other">Other</option>
                 </select>
               </div>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone — e.g. +92 300 1234567" className="h-9 rounded-md border border-border bg-bg-elevated px-2.5 text-xs text-text-primary placeholder:text-text-muted outline-none focus-visible:border-accent" />
-              <input value={allergies} onChange={(e) => setAllergies(e.target.value)} placeholder="Known allergies (comma separated, optional)" className="h-9 rounded-md border border-border bg-bg-elevated px-2.5 text-xs text-text-primary placeholder:text-text-muted outline-none focus-visible:border-accent" />
-              <input value={medications} onChange={(e) => setMedications(e.target.value)} placeholder="Current medications (comma separated, optional)" className="h-9 rounded-md border border-border bg-bg-elevated px-2.5 text-xs text-text-primary placeholder:text-text-muted outline-none focus-visible:border-accent" />
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone — e.g. +92 300 1234567" className="h-11 rounded-lg border border-border bg-bg-elevated px-2.5 text-base text-text-primary placeholder:text-text-muted outline-none focus-visible:border-accent" />
+              <input value={allergies} onChange={(e) => setAllergies(e.target.value)} placeholder="Known allergies (comma separated, optional)" className="h-11 rounded-lg border border-border bg-bg-elevated px-2.5 text-base text-text-primary placeholder:text-text-muted outline-none focus-visible:border-accent" />
+              <input value={medications} onChange={(e) => setMedications(e.target.value)} placeholder="Current medications (comma separated, optional)" className="h-11 rounded-lg border border-border bg-bg-elevated px-2.5 text-base text-text-primary placeholder:text-text-muted outline-none focus-visible:border-accent" />
               {error && <p className="text-xs text-red-500">{error}</p>}
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex flex-wrap items-center gap-2 pt-1">
                 <button
                   onClick={() => confirmBooking(doctor)}
                   disabled={submitting}
-                  className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-accent-fg hover:bg-accent-hover disabled:opacity-60"
+                  className="flex items-center gap-1.5 rounded-lg bg-accent min-h-[44px] px-3 py-2 text-sm font-medium text-accent-fg hover:bg-accent-hover disabled:opacity-60"
                 >
                   {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Confirm Booking
                 </button>

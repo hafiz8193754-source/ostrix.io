@@ -3,6 +3,10 @@ import { getUserFromRequest } from "@/lib/serverAuth";
 import { appointmentBookingSchema, appointmentUpdateSchema } from "@/lib/schemas";
 import { getOrCreatePatientForUser, createAppointment, getDoctorById, getAppointmentWithParties, updateAppointmentStatus, logClinicalAudit } from "@/lib/clinical";
 import { createNotification } from "@/lib/notifications";
+import { createAnonAuthClient } from "@/lib/serverAuth";
+import { getDoctorSlots } from "@/lib/publicDoctors";
+import { isSlotAvailable, normalizePhone } from "@/lib/slots";
+import { sendAppointmentReminder } from "@/lib/reminders";
 
 // Stored names often already include "Dr." (the registration placeholder does).
 function doctorTitle(fullName: string): string {
@@ -24,6 +28,16 @@ export async function POST(request: Request) {
   if (!doctor || !doctor.is_active || !doctor.pmdc_verified)
     return NextResponse.json({ error: "That doctor isn't available for booking." }, { status: 400 });
 
+  const phone = normalizePhone(patient.phone);
+  if (!phone)
+    return NextResponse.json({ error: "Enter your phone with country code, e.g. +92 300 1234567." }, { status: 400 });
+  patient.phone = phone;
+
+  // Only real, free slots from the doctor's schedule can be booked.
+  const days = await getDoctorSlots(createAnonAuthClient(), doctor_id);
+  if (!isSlotAvailable(days, date, time))
+    return NextResponse.json({ error: "That time slot is no longer available. Please pick another.", code: "slot_unavailable" }, { status: 409 });
+
   const patientRow = await getOrCreatePatientForUser(db, user.id, patient);
   if (!patientRow) return NextResponse.json({ error: "Could not save your patient profile." }, { status: 500 });
 
@@ -38,7 +52,13 @@ export async function POST(request: Request) {
     ai_symptom_analysis: ai_analysis,
     session_id,
   });
-  if (!appointment) return NextResponse.json({ error: "Could not book the appointment." }, { status: 500 });
+  if (!appointment) {
+    const latest = await getDoctorSlots(createAnonAuthClient(), doctor_id);
+    if (!isSlotAvailable(latest, date, time))
+      return NextResponse.json({ error: "Someone just booked that slot. Please pick another.", code: "slot_unavailable" }, { status: 409 });
+    return NextResponse.json({ error: "Could not book the appointment." }, { status: 500 });
+  }
+  await sendAppointmentReminder(appointment.id, "booked");
 
   await logClinicalAudit(db, null, null, "patient", "appointment_booked", { appointment_id: appointment.id, doctor_id });
   if (doctor.user_id && doctor.user_id !== user.id) {
@@ -99,6 +119,8 @@ export async function PATCH(request: Request) {
 
   const appointment = await updateAppointmentStatus(db, parsed.data.appointment_id, parsed.data.status);
   if (!appointment) return NextResponse.json({ error: "Could not update the appointment." }, { status: 500 });
+
+  if (appointment.status === "confirmed") await sendAppointmentReminder(appointment.id, "confirmed");
 
   const otherUserId = isDoctor ? parties.patient.user_id : parties.doctor.user_id;
   if (otherUserId && otherUserId !== user.id) {

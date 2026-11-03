@@ -294,3 +294,19 @@ export const paymentReviewSchema = z.object({
   action: z.enum(["approve", "reject"]),
   note: z.string().trim().max(500).optional(),
 });
+
+// Doctor self-edit of their public profile. Verification fields are never editable here.
+export const doctorProfileUpdateSchema = z.object({
+  specialization: z.string().trim().min(1).max(60).optional(),
+  consultation_fee_pkr: z.coerce.number().int().min(0).max(100000).optional(),
+  bio: z.string().trim().max(1500).optional().or(z.literal("")),
+  avatar_url: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((v) => v === "" || /^https:\/\//.test(v), "Photo must be an https:// URL.")
+    .optional(),
+  accepts_online: z.boolean().optional(),
+  accepts_walk_in: z.boolean().optional(),
+});
+export type DoctorProfileUpdateInput = z.infer<typeof doctorProfileUpdateSchema>;

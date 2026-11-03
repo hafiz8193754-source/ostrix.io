@@ -417,7 +417,10 @@ export default function DoctorDashboard() {
       )}
 
       <section className="min-w-0">
-        <h2 className="mb-2 font-display text-lg font-bold text-text-primary">Weekly schedule</h2>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-display text-lg font-bold text-text-primary">Weekly schedule</h2>
+          <Link href="/doctor/profile" className="inline-flex min-h-[44px] items-center rounded-lg border border-border px-3 text-sm font-medium text-text-primary">Edit public profile</Link>
+        </div>
         <ScheduleManager accessToken={session!.access_token} />
       </section>
 

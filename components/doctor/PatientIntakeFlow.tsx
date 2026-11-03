@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowUp, ChevronLeft, Brain, Utensils, Sparkles, Bone, Baby, Flower2, Eye, Smile, HeartPulse, type LucideIcon } from "lucide-react";
+import { ArrowUp, Brain, Utensils, Sparkles, Bone, Baby, Flower2, Eye, Smile, HeartPulse, type LucideIcon } from "lucide-react";
 
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
 import { VoiceRecordButton } from "@/components/shared/VoiceRecordButton";
@@ -23,12 +23,12 @@ export interface IntakeSummary {
 export function buildIntakeSummaryText(intake: IntakeSummary): string {
   return [
     intake.whatsWrong,
-    `Duration: ${intake.duration || "not specified"}.`,
+    intake.duration ? `Duration: ${intake.duration}.` : "",
     intake.severity ? `Severity: ${intake.severity}.` : "",
     intake.hasFever !== null ? `Fever: ${intake.hasFever ? "yes" : "no"}.` : "",
-    `Existing conditions: ${intake.existingConditions || "none reported"}.`,
-    `Current medicines: ${intake.currentMedicines || "none reported"}.`,
-    `Allergies: ${intake.allergies || "none reported"}.`,
+    intake.existingConditions ? `Existing conditions: ${intake.existingConditions}.` : "",
+    intake.currentMedicines ? `Current medicines: ${intake.currentMedicines}.` : "",
+    intake.allergies ? `Allergies: ${intake.allergies}.` : "",
     intake.age ? `Age: ${intake.age}.` : "",
     intake.isPregnant !== null ? `Pregnant: ${intake.isPregnant ? "yes" : "no"}.` : "",
   ]
@@ -148,16 +148,6 @@ function Composer({
 const choiceClass =
   "min-h-[44px] flex-1 rounded-xl border border-border bg-bg-surface px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:border-accent hover:bg-accent-glow";
 
-function SkipButton({ onClick, label = "None" }: { onClick: () => void; label?: string }) {
-  return (
-    <button type="button" onClick={onClick} className="min-h-[44px] self-start rounded-lg px-2 text-sm font-medium text-text-secondary hover:text-accent">
-      {label}
-    </button>
-  );
-}
-
-const TOTAL_STEPS = 9;
-
 interface PatientIntakeFlowProps {
   accessToken: string;
   onComplete: (summaryText: string, structured: IntakeSummary) => void;
@@ -175,181 +165,37 @@ const INITIAL: IntakeSummary = {
   isPregnant: null,
 };
 
-// One question at a time, per the spec's explicit instruction — never all at
-// once. Same bubble-step UX as components/WebsiteQuestionnaire.tsx. Every
-// free-text step gets a press-and-hold mic button (VoiceRecordButton) that
-// fills the field for the patient to review/edit, never auto-submits.
+// One message, then straight to a doctor. No follow-up / history questions:
+// the patient types (or picks) their problem and is routed immediately. The
+// doctor takes history during the consultation.
 export function PatientIntakeFlow({ accessToken, onComplete }: PatientIntakeFlowProps) {
-  const [step, setStep] = useState(1);
-  const [intake, setIntake] = useState<IntakeSummary>(INITIAL);
+  const [draft, setDraft] = useState("");
 
-  const [whatsWrongDraft, setWhatsWrongDraft] = useState("");
-  const [durationDraft, setDurationDraft] = useState("");
-  const [conditionsDraft, setConditionsDraft] = useState("");
-  const [medicinesDraft, setMedicinesDraft] = useState("");
-  const [allergiesDraft, setAllergiesDraft] = useState("");
-  const [ageDraft, setAgeDraft] = useState("");
-
-  function goTo(n: number) {
-    setStep(n);
-  }
-
-  function selectCategory(cat: Category) {
-    setIntake((i) => ({ ...i, whatsWrong: cat.whatsWrong }));
-    goTo(2);
-  }
-
-  function submitWhatsWrong() {
-    if (!whatsWrongDraft.trim()) return;
-    setIntake((i) => ({ ...i, whatsWrong: whatsWrongDraft.trim() }));
-    goTo(2);
-  }
-
-  function submitDuration() {
-    if (!durationDraft.trim()) return;
-    setIntake((i) => ({ ...i, duration: durationDraft.trim() }));
-    goTo(3);
-  }
-
-  function selectSeverity(severity: IntakeSummary["severity"]) {
-    setIntake((i) => ({ ...i, severity }));
-    goTo(4);
-  }
-
-  function selectFever(hasFever: boolean) {
-    setIntake((i) => ({ ...i, hasFever }));
-    goTo(5);
-  }
-
-  function submitConditions(skip = false) {
-    setIntake((i) => ({ ...i, existingConditions: skip ? "" : conditionsDraft.trim() }));
-    goTo(6);
-  }
-
-  function submitMedicines(skip = false) {
-    setIntake((i) => ({ ...i, currentMedicines: skip ? "" : medicinesDraft.trim() }));
-    goTo(7);
-  }
-
-  function submitAllergies(skip = false) {
-    setIntake((i) => ({ ...i, allergies: skip ? "" : allergiesDraft.trim() }));
-    goTo(8);
-  }
-
-  function submitAge() {
-    if (!ageDraft.trim()) return;
-    setIntake((i) => ({ ...i, age: ageDraft.trim() }));
-    goTo(9);
-  }
-
-  function selectPregnant(isPregnant: boolean | null) {
-    const final = { ...intake, isPregnant };
-    setIntake(final);
+  function finish(text: string) {
+    const whatsWrong = text.trim();
+    if (!whatsWrong) return;
+    const final = { ...INITIAL, whatsWrong };
     onComplete(buildIntakeSummaryText(final), final);
   }
 
   return (
     <div className="flex w-full flex-col gap-4 pb-4">
-      {/* One question at a time: only the current step is rendered. */}
-      <div className="flex items-center justify-between text-xs text-text-muted" aria-live="polite">
-        <span data-testid="intake-progress">Question {step} of {TOTAL_STEPS}</span>
-        {step > 1 && (
-          <button type="button" onClick={() => goTo(step - 1)} className="flex min-h-[44px] items-center gap-1 px-1 font-medium text-text-secondary hover:text-accent">
-            <ChevronLeft className="h-4 w-4" aria-hidden /> Back
-          </button>
-        )}
-      </div>
-
-      {step === 1 && (
-        <StepShell stepKey={1}>
-          <Bubble>What&apos;s wrong? Pick a category, or describe it yourself.</Bubble>
-          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
-            {CATEGORIES.map((c) => (
-              <button
-                key={c.label}
-                type="button"
-                onClick={() => selectCategory(c)}
-                className="flex min-h-[44px] items-center gap-2.5 rounded-xl border border-border bg-bg-surface px-3 py-2.5 text-left text-sm text-text-primary transition-colors hover:border-accent hover:bg-accent-glow"
-              >
-                <c.icon className="h-4 w-4 shrink-0 text-accent" aria-hidden /> {c.label}
-              </button>
-            ))}
-          </div>
-          <Composer value={whatsWrongDraft} onChange={setWhatsWrongDraft} onSubmit={submitWhatsWrong} placeholder="Or describe it in your own words…" accessToken={accessToken} />
-        </StepShell>
-      )}
-
-      {step === 2 && (
-        <StepShell stepKey={2}>
-          <Bubble>How long has this been going on?</Bubble>
-          <Composer value={durationDraft} onChange={setDurationDraft} onSubmit={submitDuration} placeholder="e.g. 3 days, since this morning" accessToken={accessToken} />
-        </StepShell>
-      )}
-
-      {step === 3 && (
-        <StepShell stepKey={3}>
-          <Bubble>How severe would you say it is?</Bubble>
-          <div className="flex w-full gap-2">
-            {(["mild", "moderate", "severe"] as const).map((sv) => (
-              <button key={sv} type="button" onClick={() => selectSeverity(sv)} className={cn(choiceClass, "capitalize")}>
-                {sv}
-              </button>
-            ))}
-          </div>
-        </StepShell>
-      )}
-
-      {step === 4 && (
-        <StepShell stepKey={4}>
-          <Bubble>Any fever?</Bubble>
-          <div className="flex w-full gap-2">
-            <button type="button" onClick={() => selectFever(true)} className={choiceClass}>Yes</button>
-            <button type="button" onClick={() => selectFever(false)} className={choiceClass}>No</button>
-          </div>
-        </StepShell>
-      )}
-
-      {step === 5 && (
-        <StepShell stepKey={5}>
-          <Bubble>Do you have any existing medical conditions? (diabetes, blood pressure, heart disease, etc.)</Bubble>
-          <Composer value={conditionsDraft} onChange={setConditionsDraft} onSubmit={() => submitConditions()} placeholder="e.g. diabetes, high blood pressure" accessToken={accessToken} />
-          <SkipButton onClick={() => submitConditions(true)} />
-        </StepShell>
-      )}
-
-      {step === 6 && (
-        <StepShell stepKey={6}>
-          <Bubble>Are you currently taking any medicines?</Bubble>
-          <Composer value={medicinesDraft} onChange={setMedicinesDraft} onSubmit={() => submitMedicines()} placeholder="e.g. Panadol, Augmentin" accessToken={accessToken} />
-          <SkipButton onClick={() => submitMedicines(true)} />
-        </StepShell>
-      )}
-
-      {step === 7 && (
-        <StepShell stepKey={7}>
-          <Bubble>Any known allergies — medicines, food, anything else?</Bubble>
-          <Composer value={allergiesDraft} onChange={setAllergiesDraft} onSubmit={() => submitAllergies()} placeholder="e.g. penicillin" accessToken={accessToken} />
-          <SkipButton onClick={() => submitAllergies(true)} />
-        </StepShell>
-      )}
-
-      {step === 8 && (
-        <StepShell stepKey={8}>
-          <Bubble>What is your age?</Bubble>
-          <Composer value={ageDraft} onChange={setAgeDraft} onSubmit={submitAge} placeholder="e.g. 34, or '2 months' for an infant" inputMode="numeric" voice={false} accessToken={accessToken} />
-        </StepShell>
-      )}
-
-      {step === 9 && (
-        <StepShell stepKey={9}>
-          <Bubble>One last thing — are you currently pregnant?</Bubble>
-          <div className="flex w-full flex-wrap gap-2">
-            <button type="button" onClick={() => selectPregnant(true)} className={choiceClass}>Yes</button>
-            <button type="button" onClick={() => selectPregnant(false)} className={choiceClass}>No</button>
-            <button type="button" onClick={() => selectPregnant(null)} className={cn(choiceClass, "text-text-secondary")}>Not applicable</button>
-          </div>
-        </StepShell>
-      )}
+      <StepShell stepKey={1}>
+        <Bubble>Tell us your problem in one line. We&apos;ll connect you to the right doctor right away.</Bubble>
+        <Composer value={draft} onChange={setDraft} onSubmit={() => finish(draft)} placeholder="e.g. pait mein dard, skin rash, bukhar aur khansi" accessToken={accessToken} />
+        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+          {CATEGORIES.map((c) => (
+            <button
+              key={c.label}
+              type="button"
+              onClick={() => finish(c.whatsWrong)}
+              className="flex min-h-[44px] items-center gap-2.5 rounded-xl border border-border bg-bg-surface px-3 py-2.5 text-left text-sm text-text-primary transition-colors hover:border-accent hover:bg-accent-glow"
+            >
+              <c.icon className="h-4 w-4 shrink-0 text-accent" aria-hidden /> {c.label}
+            </button>
+          ))}
+        </div>
+      </StepShell>
     </div>
   );
 }

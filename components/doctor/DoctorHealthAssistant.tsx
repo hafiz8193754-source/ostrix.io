@@ -11,6 +11,7 @@ import { DoctorDirectory } from "@/components/doctor/DoctorDirectory";
 import { AppointmentConfirmation } from "@/components/doctor/AppointmentConfirmation";
 import { PatientIntakeFlow, type IntakeSummary } from "@/components/doctor/PatientIntakeFlow";
 import type { Appointment, ChatMessage, Doctor, DoctorWithPresence } from "@/types";
+import { doctorName } from "@/lib/doctorDisplay";
 
 type AnalyzeResponse = {
   emergency: boolean;
@@ -119,7 +120,7 @@ export function DoctorHealthAssistant({ api, accessToken, sessionId, onSymptomsS
             api={api as (path: string, body: unknown) => Promise<{ appointment: Appointment; confirmation_message: string }>}
             onBooked={(appointment, message, doctor) => {
               setBooking({ appointment, message, doctor });
-              onResult?.({ role: "agent", text: `Appointment booked with Dr. ${doctor.full_name}. ${message}` });
+              onResult?.({ role: "agent", text: `Appointment booked with ${doctorName(doctor.full_name)}. ${message}` });
             }}
           />
         </motion.div>

@@ -6,6 +6,7 @@ import { Download, Loader2, Printer, ShieldCheck } from "lucide-react";
 import type { Prescription } from "@/types";
 import { CLINICAL_DISCLAIMER } from "@/lib/clinicalSafety";
 import { PharmacyFinder } from "@/components/pharmacy/PharmacyFinder";
+import { doctorName } from "@/lib/doctorDisplay";
 
 type DoctorLite = { full_name: string; specialization: string; pmdc_number: string; qualifications?: string | null; clinic_name?: string | null; clinic_address?: string | null; city?: string | null };
 type PatientLite = { full_name: string; age: number | null; gender: string | null };
@@ -18,7 +19,7 @@ interface PrescriptionCardProps {
   printable?: boolean;
 }
 
-const drName = (n: string) => `Dr. ${n.replace(/^\s*dr\.?\s+/i, "")}`;
+const drName = (n: string) => doctorName(n);
 const fmtCode = (c: string) => (c.length === 10 ? `${c.slice(0, 5)}-${c.slice(5)}` : c);
 
 export function medicineListText(p: Prescription): string {

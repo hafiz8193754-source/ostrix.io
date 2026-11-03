@@ -12,6 +12,7 @@ import { PrescriptionCard } from "@/components/doctor/PrescriptionCard";
 import { CLINICAL_DISCLAIMER } from "@/lib/clinicalSafety";
 import { BankTransferPanel } from "@/components/payments/BankTransferPanel";
 import type { Appointment, BankDetails, Doctor, Patient, Payment, Prescription } from "@/types";
+import { doctorName } from "@/lib/doctorDisplay";
 
 type Care = { patient: Patient | null; appointments: Appointment[]; prescriptions: Prescription[]; doctors: Doctor[] };
 
@@ -117,7 +118,7 @@ export default function MyCarePage() {
                     <div key={a.id} className="flex flex-col gap-2 rounded-2xl border border-border bg-bg-surface shadow-card px-4 py-3">
                     <div data-testid="my-appointment" className="flex flex-wrap items-center justify-between gap-2 text-sm">
                       <div>
-                        <p className="font-medium text-text-primary">{d ? `Dr. ${d.full_name.replace(/^dr\.?\s+/i, "")}` : "Doctor"}</p>
+                        <p className="font-medium text-text-primary">{d ? doctorName(d.full_name) : "Doctor"}</p>
                         <p className="text-xs text-text-muted">
                           {a.appointment_date} · {a.appointment_time.slice(0, 5)} · {a.type === "online" ? "Online" : "Walk-in"}
                           {d?.clinic_name ? ` · ${d.clinic_name}, ${d.city}` : ""}

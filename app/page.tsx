@@ -314,6 +314,7 @@ export default function Landing() {
           <nav aria-label="Footer" className="grid grid-cols-2 gap-x-10 gap-y-2.5 text-sm text-text-secondary sm:grid-cols-3">
             <Link href="/triage" className="hover:text-accent">Check symptoms</Link>
             <Link href="/studio" className="hover:text-accent">Book a doctor</Link>
+            <Link href="/doctors" className="hover:text-accent">Browse doctors</Link>
             <Link href="/my-care" className="hover:text-accent">My care</Link>
             <Link href="/login" className="hover:text-accent">Sign in</Link>
             <Link href="/doctor/register" className="hover:text-accent">For doctors</Link>

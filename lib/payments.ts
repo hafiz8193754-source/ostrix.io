@@ -1,3 +1,4 @@
+import { sendAppointmentReminder } from "@/lib/reminders";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createNotification } from "@/lib/notifications";
@@ -114,6 +115,7 @@ export async function reviewPayment(
     const patch: Record<string, string> = { payment_status: approved ? "paid" : "rejected", updated_at: new Date().toISOString() };
     if (approved && appt.status === "pending") patch.status = "confirmed";
     await admin.from("appointments").update(patch).eq("id", appt.id);
+    if (patch.status === "confirmed") await sendAppointmentReminder(appt.id, "confirmed", admin);
   }
 
   if (payment.payer_user_id) {

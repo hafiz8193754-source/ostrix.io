@@ -167,6 +167,17 @@ export default function Studio() {
     if (activeSessionId === id) newChat();
   }
 
+  async function clearHistoryHandler() {
+    if (!session) return;
+    const res = await fetch("/api/sessions", {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${session.access_token}` },
+    });
+    if (!res.ok) return;
+    setSessions([]);
+    newChat();
+  }
+
   if (session === undefined) return null;
 
   return (
@@ -184,6 +195,7 @@ export default function Studio() {
           onSelectSession={selectSession}
           onRenameSession={renameSessionHandler}
           onDeleteSession={deleteSessionHandler}
+          onClearHistory={clearHistoryHandler}
           onOpenSettings={() => setSettingsOpen(true)}
         />
         <main className="flex min-w-0 flex-1 flex-col">

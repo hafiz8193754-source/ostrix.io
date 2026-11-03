@@ -53,7 +53,7 @@ export function ChatSection({ accessToken, profile, onSave }: ChatSectionProps) 
           </button>
         ) : (
           <div className="flex flex-col gap-2 rounded-md border border-red-500/40 bg-red-500/5 p-3">
-            <p className="text-xs text-text-secondary">This permanently deletes every conversation across all agents. This can't be undone.</p>
+            <p className="text-xs text-text-secondary">Deletes every conversation. Chats linked to a doctor consultation or prescription are hidden from you but kept for your doctor. This can't be undone.</p>
             <div className="flex items-center gap-2">
               <button
                 onClick={wipeHistory}

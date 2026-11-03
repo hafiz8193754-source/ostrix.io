@@ -7,6 +7,6 @@ export async function POST(request: Request) {
   if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
   const { user, db } = auth;
 
-  await deleteAllChatHistory(db, user.id);
-  return NextResponse.json({ ok: true });
+  const result = await deleteAllChatHistory(db, user.id);
+  return NextResponse.json({ ok: true, ...result });
 }

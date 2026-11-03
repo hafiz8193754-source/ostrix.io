@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 
 import type { AgentMode, ChatMessage, Session } from "@/types";
+import { removeChat, clearChatHistory, type RemoveResult } from "@/lib/chatHistory";
 
 // User routes authenticate with the anon key and the caller's session.
 // getUserFromRequest returns an explicit per-request client: the service-role
@@ -205,6 +206,7 @@ export async function listSessions(db: SupabaseClient, userId: string): Promise<
     .select("*")
     .eq("user_id", userId)
     .eq("agent", "doctor")
+    .is("hidden_at", null)
     .order("updated_at", { ascending: false });
   if (error) return [];
   return (data as Session[]) || [];
@@ -232,9 +234,12 @@ export async function renameSession(db: SupabaseClient, userId: string, sessionI
   return data as Session;
 }
 
-export async function deleteSession(db: SupabaseClient, userId: string, sessionId: string): Promise<boolean> {
-  const { error } = await db.from("sessions").delete().eq("id", sessionId).eq("user_id", userId);
-  return !error;
+export async function deleteSession(db: SupabaseClient, userId: string, sessionId: string): Promise<RemoveResult | null> {
+  try {
+    return await removeChat(db, userId, sessionId);
+  } catch {
+    return null;
+  }
 }
 
 // ---------- Messages (full thread content, scoped to a session the caller owns) ----------
@@ -245,6 +250,7 @@ export async function getSessionOwned(db: SupabaseClient, userId: string, sessio
     .select("id")
     .eq("id", sessionId)
     .eq("user_id", userId)
+    .is("hidden_at", null)
     .maybeSingle();
   return !error && !!data;
 }
@@ -268,6 +274,6 @@ export async function appendMessage(db: SupabaseClient, sessionId: string, role:
 
 // ---------- Privacy: delete chat history ----------
 
-export async function wipeUserData(db: SupabaseClient, userId: string): Promise<void> {
-  await db.from("sessions").delete().eq("user_id", userId);
+export async function wipeUserData(db: SupabaseClient, userId: string): Promise<RemoveResult> {
+  return clearChatHistory(db, userId);
 }

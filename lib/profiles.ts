@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Profile, ProfileSettings } from "@/types";
+import { clearChatHistory } from "@/lib/chatHistory";
 
 export async function getOrCreateProfile(db: SupabaseClient, userId: string): Promise<Profile> {
   const { data: existing } = await db.from("profiles").select("*").eq("id", userId).maybeSingle();
@@ -39,7 +40,7 @@ export async function updateProfile(db: SupabaseClient, userId: string, patch: P
   return data as Profile;
 }
 
-export async function deleteAllChatHistory(db: SupabaseClient, userId: string): Promise<void> {
-  // messages cascade-delete via the sessions FK.
-  await db.from("sessions").delete().eq("user_id", userId);
+export async function deleteAllChatHistory(db: SupabaseClient, userId: string) {
+  // Unlinked chats are deleted (messages cascade); consultation-linked ones are hidden.
+  return clearChatHistory(db, userId);
 }

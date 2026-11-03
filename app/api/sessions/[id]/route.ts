@@ -26,7 +26,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
   const { user, db } = auth;
 
-  const ok = await deleteSession(db, user.id, params.id);
-  if (!ok) return NextResponse.json({ error: "Could not delete session." }, { status: 500 });
-  return NextResponse.json({ ok: true });
+  const result = await deleteSession(db, user.id, params.id);
+  if (!result) return NextResponse.json({ error: "Chat not found." }, { status: 404 });
+  return NextResponse.json({ ok: true, ...result });
 }

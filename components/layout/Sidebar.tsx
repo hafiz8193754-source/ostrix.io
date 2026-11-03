@@ -23,6 +23,7 @@ interface SidebarProps {
   onSelectSession: (id: string) => void;
   onRenameSession: (id: string, title: string) => void;
   onDeleteSession: (id: string) => void;
+  onClearHistory?: () => void;
   onOpenSettings: () => void;
 }
 
@@ -64,6 +65,7 @@ export function Sidebar({
   onSelectSession,
   onRenameSession,
   onDeleteSession,
+  onClearHistory,
   onOpenSettings,
 }: SidebarProps) {
   // Only platform admins get a 200 from the summary endpoint; everyone else
@@ -85,6 +87,7 @@ export function Sidebar({
   const [editValue, setEditValue] = useState("");
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Session | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const groups = useMemo(() => groupSessions(sessions), [sessions]);
@@ -177,8 +180,9 @@ export function Sidebar({
                       </button>
                       <button
                         onClick={() => setMenuOpenId(menuOpenId === s.id ? null : s.id)}
-                        className="hidden shrink-0 text-text-secondary hover:text-text-primary group-hover:block"
+                        className="-my-1.5 -mr-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-text-secondary hover:text-text-primary md:hidden md:group-hover:flex"
                         aria-label="Session options"
+                        data-testid="session-options"
                       >
                         <MoreVertical className="h-3.5 w-3.5" />
                       </button>
@@ -199,7 +203,8 @@ export function Sidebar({
                               setMenuOpenId(null);
                               setPendingDelete(s);
                             }}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-red-500 hover:bg-red-500/5"
+                            className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-red-500 hover:bg-red-500/5"
+                            data-testid="session-delete"
                           >
                             <Trash2 className="h-3.5 w-3.5" /> Delete
                           </button>
@@ -214,6 +219,15 @@ export function Sidebar({
         ))}
         {sessions.length === 0 && (
           <p className="px-2.5 py-2 text-xs text-text-muted">No conversations yet.</p>
+        )}
+        {sessions.length > 0 && onClearHistory && (
+          <button
+            onClick={() => setConfirmClear(true)}
+            data-testid="clear-history"
+            className="mt-2 flex min-h-[44px] w-full items-center gap-2 rounded-lg px-2.5 text-sm text-red-500 hover:bg-red-500/5"
+          >
+            <Trash2 className="h-4 w-4" /> Clear all history
+          </button>
         )}
       </nav>
 
@@ -258,7 +272,7 @@ export function Sidebar({
           <DialogHeader>
             <DialogTitle>Delete this conversation?</DialogTitle>
             <DialogDescription>
-              "{pendingDelete?.title}" and its full message history will be permanently deleted. This can't be undone.
+              "{pendingDelete?.title}" will be removed from your history. Chats linked to a doctor consultation are only hidden from you, because your doctor still needs that record. Other chats are permanently deleted.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -267,6 +281,34 @@ export function Sidebar({
             </Button>
             <Button variant="destructive" size="sm" onClick={confirmDelete}>
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmClear} onOpenChange={setConfirmClear}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clear all chat history?</DialogTitle>
+            <DialogDescription>
+              All {sessions.length} conversations will be removed from your history. Chats linked to a doctor consultation or prescription are
+              hidden from you but kept for your doctor&apos;s records. Everything else is permanently deleted. This can&apos;t be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setConfirmClear(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              data-testid="confirm-clear-history"
+              onClick={() => {
+                setConfirmClear(false);
+                onClearHistory?.();
+              }}
+            >
+              Clear all
             </Button>
           </DialogFooter>
         </DialogContent>

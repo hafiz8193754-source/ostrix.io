@@ -33,13 +33,24 @@ export interface RouteResult {
 }
 
 export function routeByKeywords(text: string): RouteResult {
+  if (isGastroComplaint(text)) return { specialization: "gastroenterologist", reason: GASTRO_REASON };
   const hit = RULES.find((r) => r.re.test(text));
   if (hit) return { specialization: hit.key, reason: hit.reason };
   return { specialization: DEFAULT_SPECIALIZATION, reason: "A General Physician can see you first and refer you if needed." };
 }
 
+// Owner rule: stomach / abdominal complaints ALWAYS go to Gastroenterologist,
+// regardless of what the model says (emergency checks run before this).
+export const GASTRO_RE = /\b(stomach|abdomen|abdominal|tummy|pait|pet|paet|maida|meda|maiday|diarrh?o?ea|dast|loose motions?|constipation|qabz|acidity|tezabiyat|heartburn|vomit\w*|ulti|ultiyan|gas)\b/i;
+const GASTRO_REASON = "Stomach and digestion problems are treated by a Gastroenterologist.";
+
+export function isGastroComplaint(text: string): boolean {
+  return GASTRO_RE.test(text);
+}
+
 /** Pick a valid specialization from the model output; fall back to keywords, then General Physician. */
 export function resolveRoute(text: string, model: { specialization?: unknown; reason?: unknown } | null): RouteResult {
+  if (isGastroComplaint(text)) return { specialization: "gastroenterologist", reason: GASTRO_REASON };
   const key = String(model?.specialization || "").trim().toLowerCase();
   const reason = oneLine(String(model?.reason || ""));
   if (SPECIALIZATION_KEYS.includes(key)) {
@@ -70,4 +81,5 @@ Return ONLY valid JSON:
 
 Rules:
 - chest pain, breathing difficulty, stroke signs, severe bleeding, unconsciousness, seizures, poisoning, suicidal thoughts -> urgency "emergency".
+- Stomach / abdominal pain, "pait mein dard", "pet dard", acidity, gas, vomiting, diarrhoea, constipation -> ALWAYS "gastroenterologist".
 - Children -> pediatrician. Pregnancy / periods -> gynecologist. Unsure -> general_physician.`;

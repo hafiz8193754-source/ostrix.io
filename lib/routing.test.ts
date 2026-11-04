@@ -18,9 +18,21 @@ describe("instant routing (no follow-up questions)", () => {
   });
 
   it("uses the model's specialty when valid, else keywords, else GP", () => {
-    expect(resolveRoute("pait dard", { specialization: "dermatologist", reason: "Skin doc. Extra." }).reason).toBe("Skin doc.");
+    expect(resolveRoute("skin rash", { specialization: "dermatologist", reason: "Skin doc. Extra." }).reason).toBe("Skin doc.");
     expect(resolveRoute("pait mein dard", { specialization: "wizard" }).specialization).toBe("gastroenterologist");
     expect(resolveRoute("something odd", null).specialization).toBe("general_physician");
+  });
+
+  it.each(["pait mein dard", "pet dard", "stomach pain", "acidity ho rahi hai", "mere bachay ke pait mein dard"])(
+    "%s always -> gastroenterologist, even if Grok says GP",
+    (text) => {
+      expect(resolveRoute(text, { specialization: "general_physician", reason: "GP first." }).specialization).toBe("gastroenterologist");
+      expect(routeByKeywords(text).specialization).toBe("gastroenterologist");
+    },
+  );
+
+  it("chest pain stays an emergency even with stomach words", () => {
+    expect(triageSafetyNet("seene mein dard aur pait mein dard")).toBeTruthy();
   });
 
   it("reason is always a single line with no question", () => {
@@ -31,6 +43,7 @@ describe("instant routing (no follow-up questions)", () => {
 
   it("system prompt forbids follow-up questions", () => {
     expect(ROUTING_SYSTEM).toMatch(/NEVER ask the patient any question/);
+    expect(ROUTING_SYSTEM).toMatch(/ALWAYS "gastroenterologist"/);
     expect(ROUTING_SYSTEM).not.toMatch(/questions_for_doctor/);
   });
 

@@ -170,7 +170,7 @@ export function DoctorDirectory({ doctors, aiAnalysis, symptomsDescription, sess
             )}
           </div>
           <PresenceBadge presence={doctor.presence} />
-          <Link href={`/doctors/${doctor.id}`} className="self-start text-xs font-medium text-accent underline">View profile</Link>
+          <Link href={`/doctors/${doctor.id}`} data-testid="book-doctor" className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-white hover:opacity-90 sm:w-auto sm:self-start">Book</Link>
           {doctor.clinic_name && <p className="text-xs text-text-muted">{doctor.clinic_name}, {doctor.city}</p>}
           <p className="text-xs text-text-secondary">
             Fee: PKR {doctor.consultation_fee_pkr.toLocaleString()} ·{" "}

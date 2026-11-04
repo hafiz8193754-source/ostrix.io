@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Download, Loader2, Printer, ShieldCheck } from "lucide-react";
+import { Download, Loader2, Printer, QrCode, ShieldCheck } from "lucide-react";
 import type { Prescription } from "@/types";
-import { CLINICAL_DISCLAIMER } from "@/lib/clinicalSafety";
 import { PharmacyFinder } from "@/components/pharmacy/PharmacyFinder";
 import { doctorName } from "@/lib/doctorDisplay";
 
@@ -73,78 +72,91 @@ export function PrescriptionCard({ prescription, doctor, patient, accessToken, p
   const specialty = prescription.signed_doctor_specialty || doctor.specialization;
   const pmdc = prescription.signed_pmdc_number;
   const signedAt = prescription.doctor_signed_at ? new Date(prescription.doctor_signed_at) : null;
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const dateText = signedAt ? signedAt.toLocaleDateString("en-GB", { timeZone: "Asia/Karachi", day: "2-digit", month: "short", year: "numeric" }) : "";
+  const ageSex = [patient.age ? `${patient.age} years` : "", patient.gender ? patient.gender[0].toUpperCase() + patient.gender.slice(1) : ""].filter(Boolean).join(" / ");
+  const label = "text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-500";
 
   return (
-    <div data-testid="signed-prescription" className="flex w-full max-w-[680px] flex-col gap-3 rounded-2xl border border-border bg-white p-5 text-neutral-900 print:max-w-none print:border-0 print:p-0">
-      <div className="flex items-start justify-between gap-3 border-b border-neutral-200 pb-3">
-        <div>
-          <p className="text-base font-bold">{drName(name)}</p>
-          <p className="text-xs text-neutral-600">{specialty}{doctor.qualifications ? ` · ${doctor.qualifications}` : ""}</p>
-          <p className="text-xs text-neutral-600">{pmdc ? `PMDC Reg. #${pmdc}` : "PMDC number not on file"}</p>
-          {doctor.clinic_name && <p className="text-xs text-neutral-500">{doctor.clinic_name}{doctor.city ? `, ${doctor.city}` : ""}</p>}
+    <div data-testid="signed-prescription" className="flex w-full max-w-[720px] flex-col gap-5 rounded-2xl border border-neutral-200 bg-white p-5 text-neutral-900 shadow-sm sm:p-8 print:max-w-none print:border-0 print:p-0 print:shadow-none">
+      <header className="flex items-start justify-between gap-4 border-b-2 border-teal-700 pb-4">
+        <div className="min-w-0">
+          <p className="text-lg font-bold leading-tight sm:text-xl">{drName(name)}</p>
+          <p className="mt-1 text-xs text-neutral-600 sm:text-sm">{specialty}{doctor.qualifications ? ` · ${doctor.qualifications}` : ""}</p>
+          {pmdc && <p className="text-xs text-neutral-600 sm:text-sm">PMDC Reg. No. {pmdc}</p>}
+          {doctor.clinic_name && <p className="text-xs text-neutral-500 sm:text-sm">{doctor.clinic_name}{doctor.city ? `, ${doctor.city}` : ""}</p>}
         </div>
-        <div className="text-right">
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-            <ShieldCheck className="h-3 w-3" /> Digitally signed
-          </span>
-          <p className="mt-1 text-xs text-neutral-600">{signedAt ? signedAt.toLocaleDateString("en-PK", { timeZone: "Asia/Karachi", dateStyle: "medium" }) : ""}</p>
+        <div className="shrink-0 text-right">
+          <p className="text-sm font-extrabold tracking-[0.2em] text-teal-700">OSTRIX</p>
+          <p className="mt-1 text-xs text-neutral-600">{dateText}</p>
           {(prescription.version ?? 1) > 1 && <p className="text-[11px] text-neutral-500">Version {prescription.version}</p>}
         </div>
-      </div>
+      </header>
 
-      <p className="text-sm text-neutral-700">Patient: {patient.full_name}{patient.gender ? `, ${patient.gender}` : ""}{patient.age ? `, ${patient.age} y` : ""}</p>
-      {rx.diagnosis && <p className="text-sm font-medium">Diagnosis: {rx.diagnosis}</p>}
+      <section className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-[2fr_1fr_1fr]">
+        <div className="col-span-2 sm:col-span-1"><p className={label}>Patient</p><p className="text-sm font-semibold">{patient.full_name}</p></div>
+        <div><p className={label}>Age / Sex</p><p className="text-sm">{ageSex || "—"}</p></div>
+        <div><p className={label}>Date</p><p className="text-sm">{dateText}</p></div>
+      </section>
 
-      <div className="rounded-xl border border-neutral-200 p-3.5">
-        <p className="mb-2 font-serif text-lg font-bold">℞</p>
-        <ol className="flex flex-col gap-2">
+      {rx.diagnosis && (
+        <section><p className={label}>Diagnosis</p><p className="text-sm font-medium">{rx.diagnosis}</p></section>
+      )}
+
+      <section>
+        <p className="mb-2 font-serif text-2xl font-bold leading-none text-teal-700">℞</p>
+        <div className="hidden grid-cols-[1.5rem_2fr_1fr_1.5fr_1fr] gap-3 rounded-md bg-neutral-100 px-3 py-2 sm:grid">
+          {["#", "Medicine", "Dose", "Frequency", "Duration"].map((h) => <p key={h} className={label}>{h}</p>)}
+        </div>
+        <ol className="divide-y divide-neutral-200">
           {rx.medications.map((m, i) => (
-            <li key={i} data-testid="rx-med" className="text-sm">
-              <p className="font-medium">{i + 1}. {m.name}</p>
-              <p className="text-xs text-neutral-600">{m.dosage} · {m.frequency} · {m.duration}{m.route ? ` · ${m.route}` : ""}</p>
-              {m.instructions && <p className="text-xs text-neutral-500">{m.instructions}</p>}
+            <li key={i} data-testid="rx-med" className="grid grid-cols-[1.5rem_1fr] gap-x-3 px-0 py-3 text-sm sm:grid-cols-[1.5rem_2fr_1fr_1.5fr_1fr] sm:px-3">
+              <span className="font-semibold">{i + 1}</span>
+              <div>
+                <p className="font-semibold">{m.name}</p>
+                {(m.route || m.instructions) && <p className="text-xs text-neutral-500">{[m.route, m.instructions].filter(Boolean).join(" · ")}</p>}
+                <p className="mt-1 text-xs text-neutral-700 sm:hidden">{m.dosage} · {m.frequency} · {m.duration}</p>
+              </div>
+              <p className="hidden sm:block">{m.dosage}</p>
+              <p className="hidden sm:block">{m.frequency}</p>
+              <p className="hidden sm:block">{m.duration}</p>
             </li>
           ))}
         </ol>
-      </div>
+      </section>
 
       {rx.treatment_plan && (
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Treatment plan</p>
-          <p data-testid="rx-plan" className="whitespace-pre-wrap text-sm text-neutral-700">{rx.treatment_plan}</p>
-        </div>
+        <section><p className={label}>Treatment plan</p><p data-testid="rx-plan" className="whitespace-pre-wrap text-sm text-neutral-700">{rx.treatment_plan}</p></section>
       )}
-      {rx.lab_tests.length > 0 && <p className="text-sm text-neutral-700">Lab tests: {rx.lab_tests.map((t) => t.name).join(", ")}</p>}
+      {rx.lab_tests.length > 0 && (
+        <section><p className={label}>Investigations</p><ul className="text-sm text-neutral-700">{rx.lab_tests.map((t, i) => <li key={i}>• {t.name}</li>)}</ul></section>
+      )}
       {rx.advice.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Advice</p>
-          <ul className="text-sm text-neutral-700">{rx.advice.map((a, i) => <li key={i}>• {a}</li>)}</ul>
-        </div>
+        <section><p className={label}>Advice</p><ul className="space-y-0.5 text-sm text-neutral-700">{rx.advice.map((a, i) => <li key={i}>• {a}</li>)}</ul></section>
       )}
-      {rx.follow_up && <p className="text-sm text-neutral-700">Follow-up: {rx.follow_up}</p>}
-      {rx.emergency_instructions && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-700">Go to emergency / call 1122 if: {rx.emergency_instructions}</p>}
+      {rx.follow_up && (
+        <section><p className={label}>Follow-up</p><p className="text-sm text-neutral-700">{rx.follow_up}</p></section>
+      )}
 
-      <div className="flex flex-wrap items-end justify-between gap-3 border-t border-neutral-200 pt-3">
-        <div className="text-[11px] text-neutral-600">
-          {prescription.verify_code && (
-            <>
-              <p>Verification code: <span data-testid="rx-verify-code" className="font-mono text-sm font-bold text-neutral-900">{fmtCode(prescription.verify_code)}</span></p>
-              <p>Verify at <Link href={`/verify/${prescription.verify_code}`} className="underline">{origin.replace(/^https?:\/\//, "")}/verify/{prescription.verify_code}</Link></p>
-            </>
-          )}
-          {prescription.content_hash && <p className="font-mono">SHA-256 {prescription.content_hash.slice(0, 16)}…</p>}
-        </div>
-        <div className="flex flex-col items-center">
+      <footer className="flex items-end justify-between gap-4 pt-4">
+        {prescription.verify_code ? (
+          <Link href={`/verify/${prescription.verify_code}`} className="flex items-center gap-1.5 text-[11px] text-neutral-500 hover:text-neutral-800" title="Verify this prescription">
+            <QrCode className="h-4 w-4" aria-hidden />
+            <span data-testid="rx-verify-code" className="font-mono font-semibold text-neutral-700">{fmtCode(prescription.verify_code)}</span>
+          </Link>
+        ) : <span />}
+        <div className="flex flex-col items-end text-right">
           {sigUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img data-testid="rx-signature" src={sigUrl} alt="Doctor's signature" className="h-14 w-40 object-contain" />
+            <img data-testid="rx-signature" src={sigUrl} alt="Doctor's signature" className="h-12 w-36 object-contain" />
           ) : (
-            <div className="h-14 w-40" />
+            <div className="h-10 w-36" />
           )}
-          <p className="border-t border-neutral-400 px-4 text-[11px] text-neutral-600">{drName(name)}</p>
+          <div className="w-44 border-t border-neutral-400 pt-1">
+            <p className="text-xs font-semibold">{drName(name)}</p>
+            <p className="inline-flex items-center gap-1 text-[11px] font-medium text-teal-700"><ShieldCheck className="h-3 w-3" aria-hidden /> Digitally signed</p>
+          </div>
         </div>
-      </div>
+      </footer>
 
       <div className="flex flex-wrap gap-2 print:hidden">
         {printable ? (
@@ -163,7 +175,6 @@ export function PrescriptionCard({ prescription, doctor, patient, accessToken, p
 
       {!printable && <PharmacyFinder accessToken={accessToken} medicineList={`Prescription ${prescription.verify_code ? fmtCode(prescription.verify_code) : ""} (${drName(name)})\n${medicineListText(prescription)}`} />}
 
-      <p className="text-[10px] text-neutral-500">AI-assisted draft reviewed, edited and signed by the doctor. {CLINICAL_DISCLAIMER}</p>
     </div>
   );
 }

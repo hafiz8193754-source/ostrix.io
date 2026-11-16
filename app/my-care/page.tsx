@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import type { Session as SupabaseSession } from "@supabase/supabase-js";
 import { ArrowLeft, CalendarDays, FileText, Loader2, MessageSquare, Stethoscope, Video } from "lucide-react";
 
-import { supabase } from "@/lib/supabaseClient";
+import { useRequireSession } from "@/lib/useAuthSession";
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
 import { PrescriptionCard } from "@/components/doctor/PrescriptionCard";
 import { CLINICAL_DISCLAIMER } from "@/lib/clinicalSafety";
@@ -34,20 +33,12 @@ const PAYMENT_LABEL: Record<string, [string, string]> = {
 
 // Patient-facing page: my appointments and my signed prescriptions (PDF download).
 export default function MyCarePage() {
-  const router = useRouter();
-  const [session, setSession] = useState<SupabaseSession | null>(null);
+  const { session } = useRequireSession();
   const [care, setCare] = useState<Care | null>(null);
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [bank, setBank] = useState<BankDetails | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.replace("/login");
-      else setSession(data.session);
-    });
-  }, [router]);
 
   async function load(s: SupabaseSession) {
     const res = await fetch("/api/patient/care", { headers: { authorization: `Bearer ${s.access_token}` } });

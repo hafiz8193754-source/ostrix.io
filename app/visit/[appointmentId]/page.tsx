@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import type { RealtimeChannel, Session as SupabaseSession } from "@supabase/supabase-js";
+import { useParams } from "next/navigation";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { ArrowLeft, Loader2, Mic, MicOff, PhoneOff, ShieldCheck, Video, VideoOff } from "lucide-react";
 
 import { supabase } from "@/lib/supabaseClient";
+import { useRequireSession } from "@/lib/useAuthSession";
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
 import { VoiceNotes } from "@/components/visit/VoiceNotes";
 import { cn } from "@/lib/utils";
@@ -47,8 +48,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function VisitRoomPage() {
   const { appointmentId } = useParams<{ appointmentId: string }>();
-  const router = useRouter();
-  const [session, setSession] = useState<SupabaseSession | null>(null);
+  const { session } = useRequireSession();
   const [boot, setBoot] = useState<Bootstrap | null>(null);
   const [error, setError] = useState("");
   const [phase, setPhase] = useState<Phase>("lobby");
@@ -82,13 +82,6 @@ export default function VisitRoomPage() {
     if (!localStream.current) localStream.current = new MediaStream();
     if (!remoteStream.current) remoteStream.current = new MediaStream();
   }, []);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.replace(`/login?next=${encodeURIComponent(`/visit/${appointmentId}`)}`);
-      else setSession(data.session);
-    });
-  }, [router, appointmentId]);
 
   useEffect(() => {
     if (!session) return;

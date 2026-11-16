@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import type { Session } from "@supabase/supabase-js";
 import { CheckCircle2, Loader2 } from "lucide-react";
 
-import { supabase } from "@/lib/supabaseClient";
+import { useAuthSession } from "@/lib/useAuthSession";
 import { SlotPicker } from "@/components/booking/SlotPicker";
 import { normalizePhone, type DaySlots } from "@/lib/slots";
 import type { PublicDoctor } from "@/lib/publicDoctors";
@@ -15,7 +14,7 @@ const input =
   "h-12 w-full min-w-0 rounded-xl border border-border bg-bg-elevated px-3 text-base text-text-primary placeholder:text-text-muted outline-none focus-visible:border-accent";
 
 export function BookingForm({ doctor, initialDays }: { doctor: PublicDoctor; initialDays: DaySlots[] }) {
-  const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const { status, session } = useAuthSession();
   const [slot, setSlot] = useState<{ date: string; time: string } | null>(null);
   const [type, setType] = useState<"online" | "walk_in">(doctor.accepts_online ? "online" : "walk_in");
   const [name, setName] = useState("");
@@ -25,10 +24,6 @@ export function BookingForm({ doctor, initialDays }: { doctor: PublicDoctor; ini
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [done, setDone] = useState<{ message: string; date: string; time: string } | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-  }, []);
 
   async function submit() {
     setError(null);
@@ -104,7 +99,7 @@ export function BookingForm({ doctor, initialDays }: { doctor: PublicDoctor; ini
             </div>
           )}
 
-          {session === undefined ? null : !session ? (
+          {status === "loading" ? null : !session ? (
             <Link
               href={`/login?next=/doctors/${doctor.id}`}
               className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-accent px-5 text-base font-semibold text-accent-fg"

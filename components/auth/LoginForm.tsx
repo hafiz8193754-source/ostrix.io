@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { safeNext } from "@/lib/authRedirect";
 import { GoogleButton, OrDivider } from "@/components/auth/GoogleButton";
+import { useAuthSession } from "@/lib/useAuthSession";
 
 // Google sign-in is off until the Google provider is configured in Supabase.
 // Flip to true (or set NEXT_PUBLIC_GOOGLE_LOGIN=1) to show the button again.
@@ -29,11 +30,19 @@ function welcomePath(): string {
 
 export function LoginForm({ initialMode = "signin" }: { initialMode?: "signin" | "signup" } = {}) {
   const router = useRouter();
+  const { status } = useAuthSession();
   const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const [nextPath, setNextPath] = useState("/studio");
   useEffect(() => setNextPath(sameSiteNext()), []);
   const [err, setErr] = useState("");
   const [notice, setNotice] = useState("");
+
+  // Don't mount the password form until we know the saved session is gone.
+  // Otherwise a return visit refreshes the access token and the form (often
+  // autofilled) asks for the password again a moment later.
+  useEffect(() => {
+    if (status === "authenticated") router.replace(welcomePath());
+  }, [status, router]);
 
   const {
     register,
@@ -57,6 +66,15 @@ export function LoginForm({ initialMode = "signin" }: { initialMode?: "signin" |
     // Role screen decides: first-timers pick Patient/Doctor, everyone else
     // is forwarded to ?next= or their role's home.
     router.push(welcomePath());
+  }
+
+  if (status !== "anonymous") {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-mesh px-6 py-10">
+        <OstrixLogo size="sm" withWordmark />
+        <p role="status" className="text-sm text-text-secondary">Checking your session…</p>
+      </div>
+    );
   }
 
   return (

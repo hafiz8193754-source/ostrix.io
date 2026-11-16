@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import type { Session } from "@supabase/supabase-js";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
 import { supabase } from "@/lib/supabaseClient";
+import { useRequireSession } from "@/lib/useAuthSession";
 import { readPhoto } from "@/lib/image";
 import { PublicHeader } from "@/components/booking/PublicHeader";
 import { DoctorAvatar } from "@/components/booking/DoctorAvatar";
@@ -20,21 +19,13 @@ const field = "h-12 w-full min-w-0 rounded-xl border border-border bg-bg-elevate
 type Editable = PublicDoctor & { registration_status: string };
 
 export default function DoctorProfileEditPage() {
-  const router = useRouter();
-  const [session, setSession] = useState<Session | null>(null);
+  const { session } = useRequireSession();
   const [doctor, setDoctor] = useState<Editable | null>(null);
   const [form, setForm] = useState({ specialization: "", consultation_fee_pkr: "0", bio: "", avatar_url: "", accepts_online: true, accepts_walk_in: true });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.replace("/login?next=/doctor/profile");
-      else setSession(data.session);
-    });
-  }, [router]);
 
   useEffect(() => {
     if (!session) return;

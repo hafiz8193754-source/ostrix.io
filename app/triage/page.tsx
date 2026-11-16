@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import type { Session as SupabaseSession } from "@supabase/supabase-js";
 import { AlertTriangle, ArrowLeft, Loader2, Phone, Stethoscope } from "lucide-react";
 
-import { supabase } from "@/lib/supabaseClient";
+import { useRequireSession } from "@/lib/useAuthSession";
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
 import { VoiceRecordButton } from "@/components/shared/VoiceRecordButton";
 import { DoctorDirectory } from "@/components/doctor/DoctorDirectory";
@@ -57,20 +55,12 @@ function EmergencyCallout({ match, hospitals }: { match?: string | null; hospita
 }
 
 export default function TriagePage() {
-  const router = useRouter();
-  const [session, setSession] = useState<SupabaseSession | null>(null);
+  const { session } = useRequireSession();
   const [symptoms, setSymptoms] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<TriageResponse | null>(null);
   const [booked, setBooked] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.replace(`/login?next=${encodeURIComponent("/triage")}`);
-      else setSession(data.session);
-    });
-  }, [router]);
 
   // Instant client-side net: the banner shows before any network round trip.
   const localMatch = symptoms.trim() ? triageSafetyNet(symptoms) : null;

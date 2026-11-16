@@ -2,27 +2,19 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import type { Session as SupabaseSession } from "@supabase/supabase-js";
+import { useParams } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
+import { useRequireSession } from "@/lib/useAuthSession";
 import { PrescriptionCard } from "@/components/doctor/PrescriptionCard";
 import type { Prescription } from "@/types";
 
 // Clean printable prescription (browser "Save as PDF" friendly).
 export default function PrintableRxPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
-  const [session, setSession] = useState<SupabaseSession | null>(null);
+  const { session } = useRequireSession();
   const [data, setData] = useState<{ prescription: Prescription; doctor: any; patient: any } | null>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.replace(`/login?next=${encodeURIComponent(`/rx/${id}`)}`);
-      else setSession(data.session);
-    });
-  }, [router, id]);
   useEffect(() => {
     if (!session) return;
     fetch(`/api/prescriptions/${id}`, { headers: { authorization: `Bearer ${session.access_token}` } })

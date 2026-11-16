@@ -2,10 +2,9 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { Session as SupabaseSession } from "@supabase/supabase-js";
 import { ArrowRight, Receipt, ShieldCheck, Stethoscope } from "lucide-react";
 
-import { supabase } from "@/lib/supabaseClient";
+import { useRequireSession } from "@/lib/useAuthSession";
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
 import { DoctorVerificationPanel } from "@/components/admin/DoctorVerificationPanel";
 import { PaymentsPanel } from "@/components/admin/PaymentsPanel";
@@ -22,16 +21,9 @@ function AdminHub() {
   const pathname = usePathname();
   const params = useSearchParams();
   const tab: Tab = params.get("tab") === "payments" ? "payments" : "doctors";
-  const [session, setSession] = useState<SupabaseSession | null | undefined>(undefined);
+  const { session } = useRequireSession();
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   const [summary, setSummary] = useState<{ pendingDoctors: number; pendingPayments: number } | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.replace(`/login?next=${encodeURIComponent("/admin")}`);
-      else setSession(data.session);
-    });
-  }, [router]);
 
   useEffect(() => {
     if (!session) return;

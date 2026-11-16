@@ -3,9 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Session as SupabaseSession } from "@supabase/supabase-js";
-
-import { supabase } from "@/lib/supabaseClient";
+import { useRequireSession } from "@/lib/useAuthSession";
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
 import { PrescriptionReviewPanel } from "@/components/doctor/PrescriptionReviewPanel";
 import { PresenceWidget } from "@/components/doctor/PresenceWidget";
@@ -88,7 +86,7 @@ function ExpiryWarningBanner({ doctor }: { doctor: Doctor }) {
 
 export default function DoctorDashboard() {
   const router = useRouter();
-  const [session, setSession] = useState<SupabaseSession | null | undefined>(undefined);
+  const { session } = useRequireSession();
   const [doctor, setDoctor] = useState<Doctor | null | undefined>(undefined);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [pending, setPending] = useState<Prescription[]>([]);
@@ -105,13 +103,6 @@ export default function DoctorDashboard() {
   const [revisingId, setRevisingId] = useState<string | null>(null);
 
   useDoctorPresence(doctor ? session : null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.replace("/login?next=/doctor/dashboard");
-      else setSession(data.session);
-    });
-  }, [router]);
 
   const load = useCallback(async () => {
     if (!session) return;
@@ -182,7 +173,7 @@ export default function DoctorDashboard() {
     }
   }
 
-  if (session === undefined || doctor === undefined) return null;
+  if (!session || doctor === undefined) return null;
 
   if (!doctor) {
     return (

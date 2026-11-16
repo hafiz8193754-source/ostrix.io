@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Session as SupabaseSession } from "@supabase/supabase-js";
 
-import { supabase } from "@/lib/supabaseClient";
+import { useRequireSession } from "@/lib/useAuthSession";
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
 import { CLINICAL_DISCLAIMER } from "@/lib/clinicalSafety";
 import { CheckCircle2 } from "lucide-react";
@@ -23,7 +22,7 @@ const TOTAL_STEPS = 6;
 
 export default function DoctorRegister() {
   const router = useRouter();
-  const [session, setSession] = useState<SupabaseSession | null | undefined>(undefined);
+  const { session } = useRequireSession();
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
   const [step, setStep] = useState(1);
@@ -31,13 +30,6 @@ export default function DoctorRegister() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.replace("/login?next=/doctor/register");
-      else setSession(data.session);
-    });
-  }, [router]);
 
   // Load any saved draft once, and check whether this account already has a
   // doctor profile (mirrors the old single-step page's guard).
@@ -149,7 +141,7 @@ export default function DoctorRegister() {
     setSubmitting(false);
   }
 
-  if (session === undefined || hasProfile === null) return null;
+  if (!session || hasProfile === null) return null;
 
   if (hasProfile) {
     return (

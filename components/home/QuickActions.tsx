@@ -6,25 +6,22 @@ import { CalendarDays, MessageSquare, Stethoscope, LogIn } from "lucide-react";
 
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
+import { useAuthSession } from "@/lib/useAuthSession";
 
 // Header actions: signed-out visitors see "Sign in"; signed-in users get
 // their quick actions (consult, my care, doctor dashboard for doctors).
 export function HeaderActions() {
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSignedIn(!!s));
-    return () => data.subscription.unsubscribe();
-  }, []);
-  if (signedIn) {
+  const { status } = useAuthSession();
+  if (status === "loading") {
+    return <div className="h-8 w-24" aria-hidden />;
+  }
+  if (status === "authenticated") {
     return (
       <Button asChild size="sm">
         <Link href="/my-care">My care</Link>
       </Button>
     );
   }
-  // Signed-out (or still checking): always show both entry points. The home
-  // page never opens a sign-in prompt on its own.
   return (
     <div className="flex items-center gap-2">
       <Button asChild size="sm" variant="outline">
@@ -40,25 +37,29 @@ export function HeaderActions() {
 }
 
 export function QuickActions() {
-  const [state, setState] = useState<{ signedIn: boolean; doctor: boolean } | null>(null);
+  const { status, session } = useAuthSession();
+  const [doctor, setDoctor] = useState(false);
   useEffect(() => {
+    if (status !== "authenticated" || !session) return;
     let alive = true;
-    supabase.auth.getSession().then(async ({ data }) => {
-      const s = data.session;
-      if (!s) return alive && setState({ signedIn: false, doctor: false });
-      const { data: doc } = await supabase.from("doctors").select("id").eq("user_id", s.user.id).maybeSingle();
-      if (alive) setState({ signedIn: true, doctor: !!doc });
-    });
+    supabase
+      .from("doctors")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (alive) setDoctor(!!data);
+      });
     return () => {
       alive = false;
     };
-  }, []);
-  if (!state?.signedIn) return null;
+  }, [status, session]);
+  if (status !== "authenticated") return null;
   const items = [
     { href: "/triage", label: "Check symptoms", icon: Stethoscope },
     { href: "/studio", label: "Talk to a doctor", icon: MessageSquare },
     { href: "/my-care", label: "My appointments & prescriptions", icon: CalendarDays },
-    ...(state.doctor ? [{ href: "/doctor/dashboard", label: "Doctor dashboard", icon: Stethoscope }] : []),
+    ...(doctor ? [{ href: "/doctor/dashboard", label: "Doctor dashboard", icon: Stethoscope }] : []),
   ];
   return (
     <nav aria-label="Your quick actions" className="mt-8 animate-fade-up rounded-lg border border-border bg-bg-surface p-4 text-left">

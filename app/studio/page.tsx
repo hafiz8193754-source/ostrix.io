@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import type { Session as SupabaseSession } from "@supabase/supabase-js";
 
-import { supabase } from "@/lib/supabaseClient";
+import { useRequireSession } from "@/lib/useAuthSession";
 import { TopNav } from "@/components/layout/TopNav";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MessageBubble } from "@/components/chat/MessageBubble";
@@ -18,8 +16,7 @@ function truncate(text: string, max = 60) {
 }
 
 export default function Studio() {
-  const router = useRouter();
-  const [session, setSession] = useState<SupabaseSession | null | undefined>(undefined);
+  const { session } = useRequireSession();
   const [doctorMsgs, setDoctorMsgs] = useState<ChatMessage[]>([]);
   const [doctorLive, setDoctorLive] = useState(true);
   const [doctorResetKey, setDoctorResetKey] = useState(0);
@@ -30,18 +27,6 @@ export default function Studio() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sidebarInitialized = useRef(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.replace("/login");
-      else setSession(data.session);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      if (!s) router.replace("/login");
-      else setSession(s);
-    });
-    return () => sub.subscription.unsubscribe();
-  }, [router]);
 
   useEffect(() => {
     function update() {
@@ -178,7 +163,7 @@ export default function Studio() {
     newChat();
   }
 
-  if (session === undefined) return null;
+  if (!session) return null;
 
   return (
     <div className="flex h-screen flex-col bg-bg-base">

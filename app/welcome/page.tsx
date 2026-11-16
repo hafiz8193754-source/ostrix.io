@@ -4,27 +4,29 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { HeartPulse, Stethoscope, ArrowRight } from "lucide-react";
 
-import { supabase } from "@/lib/supabaseClient";
 import { safeNext } from "@/lib/authRedirect";
+import { useRequireSession } from "@/lib/useAuthSession";
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
 
 type Choice = "patient" | "doctor";
 
 export default function Welcome() {
   const router = useRouter();
+  const { status, session } = useRequireSession();
   const [token, setToken] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState<Choice | null>(null);
   const [err, setErr] = useState("");
 
   useEffect(() => {
+    if (status !== "authenticated" || !session) return;
+    const t = session.access_token;
+    let cancelled = false;
     (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) return router.replace("/login?next=/welcome");
-      const t = data.session.access_token;
       setToken(t);
       const res = await fetch("/api/account/role", { headers: { authorization: `Bearer ${t}` }, cache: "no-store" });
       const j = await res.json().catch(() => ({}));
+      if (cancelled) return;
       if (res.ok && j.role) {
         // Already has a role: honour an explicit ?next=, else the role's home.
         const raw = new URLSearchParams(window.location.search).get("next");
@@ -32,7 +34,10 @@ export default function Welcome() {
       }
       setReady(true);
     })();
-  }, [router]);
+    return () => {
+      cancelled = true;
+    };
+  }, [router, status, session]);
 
   async function choose(role: Choice) {
     if (!token) return;

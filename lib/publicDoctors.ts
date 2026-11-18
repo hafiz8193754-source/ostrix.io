@@ -5,7 +5,7 @@ import type { AvailabilityException, DoctorSchedule } from "@/types";
 
 // Patient-facing doctor fields only — never CNIC, documents, phone, etc.
 export const PUBLIC_DOCTOR_COLUMNS =
-  "id, full_name, specialization, sub_specialization, qualifications, experience_years, clinic_name, city, consultation_fee_pkr, accepts_online, accepts_walk_in, bio, avatar_url, profile_photo_url, pmdc_number, languages";
+  "id, full_name, specialization, sub_specialization, qualifications, experience_years, clinic_name, city, country, consultation_fee_pkr, accepts_online, accepts_walk_in, bio, avatar_url, profile_photo_url, pmdc_number, languages";
 
 export interface PublicDoctor {
   id: string;
@@ -16,6 +16,7 @@ export interface PublicDoctor {
   experience_years: number;
   clinic_name: string | null;
   city: string;
+  country: string | null;
   consultation_fee_pkr: number;
   accepts_online: boolean;
   accepts_walk_in: boolean;

@@ -140,7 +140,7 @@ export async function registerDoctor(
     .insert({
       user_id: userId,
       full_name: input.full_name,
-      cnic: input.cnic,
+      cnic: input.cnic || null,
       email: input.email,
       phone: input.phone,
       whatsapp: input.whatsapp || null,
@@ -156,6 +156,7 @@ export async function registerDoctor(
       clinic_name: input.clinic_name,
       clinic_address: input.clinic_address,
       city: input.city,
+      country: input.country,
       accepts_online: input.accepts_online,
       accepts_walk_in: input.accepts_walk_in,
       consultation_fee_pkr: input.consultation_fee_pkr,

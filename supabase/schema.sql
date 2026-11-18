@@ -300,6 +300,7 @@ alter table public.doctors add column if not exists pmdc_registration_type text
 alter table public.doctors add column if not exists pmdc_expiry_date date;
 alter table public.doctors add column if not exists pmdc_expiry_warned_at timestamptz;
 alter table public.doctors add column if not exists cnic text;
+alter table public.doctors add column if not exists country text not null default 'Pakistan';
 alter table public.doctors add column if not exists year_of_graduation integer;
 alter table public.doctors add column if not exists pmdc_certificate_url text;
 alter table public.doctors add column if not exists degree_certificate_url text;

@@ -15,6 +15,7 @@ import { StepPractice } from "@/components/doctor/registration/StepPractice";
 import { StepDocuments } from "@/components/doctor/registration/StepDocuments";
 import { StepSchedule } from "@/components/doctor/registration/StepSchedule";
 import { StepDeclarations } from "@/components/doctor/registration/StepDeclarations";
+import { canonicalCountryName, storedPhone } from "@/lib/countries";
 import { initialAnswers, type RegistrationAnswers } from "@/components/doctor/registration/types";
 
 const DRAFT_KEY = "ostrix_doctor_registration_draft";
@@ -45,7 +46,16 @@ export default function DoctorRegister() {
       }
       try {
         const saved = localStorage.getItem(DRAFT_KEY);
-        if (saved) setAnswers({ ...initialAnswers(), ...JSON.parse(saved) });
+        if (saved) {
+          const parsed = JSON.parse(saved) as Partial<RegistrationAnswers>;
+          const city = parsed.city === "Other" ? (parsed.cityOther || "").trim() : parsed.city;
+          setAnswers({
+            ...initialAnswers(),
+            ...parsed,
+            country: canonicalCountryName(parsed.country),
+            city: city ?? "",
+          });
+        }
       } catch {
         // corrupt/unavailable draft — start fresh
       }
@@ -90,8 +100,9 @@ export default function DoctorRegister() {
           full_name: answers.full_name.trim(),
           cnic: answers.cnic.trim(),
           email: answers.email.trim(),
-          phone: answers.phone.trim(),
-          whatsapp: answers.whatsappSame ? answers.phone.trim() : answers.whatsapp.trim(),
+          phone: storedPhone(answers.country, answers.phone) || answers.phone.trim(),
+          whatsapp: storedPhone(answers.country, answers.whatsappSame ? answers.phone : answers.whatsapp) || "",
+          country: canonicalCountryName(answers.country),
           pmdc_number: answers.pmdc_number.trim(),
           pmdc_registration_type: answers.pmdc_registration_type,
           pmdc_expiry_date: answers.pmdc_expiry_date,
@@ -103,7 +114,7 @@ export default function DoctorRegister() {
           languages: answers.languages,
           clinic_name: answers.clinic_name.trim(),
           clinic_address: answers.clinic_address.trim(),
-          city: answers.city === "Other" ? answers.cityOther.trim() : answers.city,
+          city: answers.city.trim(),
           accepts_online: answers.accepts_online,
           accepts_walk_in: answers.accepts_walk_in,
           consultation_fee_pkr: parseInt(answers.consultation_fee_pkr, 10) || 0,

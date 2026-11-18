@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CITIES, fieldClass, inputClass, type StepProps } from "./types";
+import { CountrySelect } from "@/components/ui/CountrySelect";
+import { fieldClass, inputClass, type StepProps } from "./types";
 import { StepFooter } from "./StepFooter";
 
 export function StepPractice({ values, onChange, onNext, onBack }: StepProps) {
@@ -9,7 +10,7 @@ export function StepPractice({ values, onChange, onNext, onBack }: StepProps) {
 
   const clinicValid = values.clinic_name.trim().length > 0;
   const addressValid = values.clinic_address.trim().length > 0;
-  const cityValid = values.city !== "Other" || values.cityOther.trim().length > 0;
+  const cityValid = values.city.trim().length > 0;
   const feeNum = parseInt(values.consultation_fee_pkr, 10);
   const feeValid = Number.isFinite(feeNum) && feeNum >= 0 && feeNum <= 100000;
   const typeValid = values.accepts_online || values.accepts_walk_in;
@@ -39,25 +40,16 @@ export function StepPractice({ values, onChange, onNext, onBack }: StepProps) {
         {touched && !addressValid && <span className="text-xs text-red-500">Address is required.</span>}
       </label>
 
-      <div className="grid grid-cols-2 gap-4">
-        <label className={fieldClass}>
-          City
-          <select value={values.city} onChange={(e) => onChange({ city: e.target.value })} className={inputClass}>
-            {CITIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </label>
-        {values.city === "Other" && (
-          <label className={fieldClass}>
-            Specify city
-            <input value={values.cityOther} onChange={(e) => onChange({ cityOther: e.target.value })} className={inputClass} />
-            {touched && !cityValid && <span className="text-xs text-red-500">Enter your city.</span>}
-          </label>
-        )}
-      </div>
+      <label className={fieldClass}>
+        Country
+        <CountrySelect value={values.country} onChange={(country) => onChange({ country })} />
+      </label>
+
+      <label className={fieldClass}>
+        City
+        <input value={values.city} onChange={(e) => onChange({ city: e.target.value })} placeholder="City" className={inputClass} />
+        {touched && !cityValid && <span className="text-xs text-red-500">Enter your city.</span>}
+      </label>
 
       <div className="flex gap-4 text-sm text-text-secondary">
         <label className="flex items-center gap-1.5">

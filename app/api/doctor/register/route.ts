@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/serverAuth";
 import { doctorRegisterSchema } from "@/lib/schemas";
+import { normalizeCountry, storedPhone } from "@/lib/countries";
 import { createNotification } from "@/lib/notifications";
 import { getDoctorByUserId, isPmdcNumberTaken, logDoctorVerification, registerDoctor } from "@/lib/clinical";
 
@@ -29,14 +30,22 @@ export async function POST(request: Request) {
   if (!parsed.success)
     return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid request." }, { status: 400 });
 
-  if (await isPmdcNumberTaken(db, parsed.data.pmdc_number)) {
+  const country = normalizeCountry(parsed.data.country);
+  const phone = country ? storedPhone(country.name, parsed.data.phone) : null;
+  const whatsappRaw = parsed.data.whatsapp?.trim() ?? "";
+  const whatsapp = !whatsappRaw ? "" : country ? storedPhone(country.name, whatsappRaw) : null;
+  if (!country || !phone || whatsapp === null)
+    return NextResponse.json({ error: "Choose a country and a valid phone number." }, { status: 400 });
+  const registration = { ...parsed.data, country: country.name, phone, whatsapp };
+
+  if (await isPmdcNumberTaken(db, registration.pmdc_number)) {
     return NextResponse.json(
       { error: "This PMDC number is already registered. Contact support if this is an error." },
       { status: 409 }
     );
   }
 
-  const doctor = await registerDoctor(db, user.id, parsed.data);
+  const doctor = await registerDoctor(db, user.id, registration);
   if (!doctor) return NextResponse.json({ error: "Could not submit your registration. Please try again." }, { status: 500 });
 
   await logDoctorVerification(db, doctor.id, null, "pending", null);

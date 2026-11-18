@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { cnicError, isPakistan, licenseError, normalizeCountry, phoneError } from "@/lib/countries";
+
 // ---------- Doctor & Clinical Agent ----------
 
 export const symptomAnalysisSchema = z.object({
@@ -109,14 +111,16 @@ export type ScheduleRowInput = z.infer<typeof scheduleRowSchema>;
 // deletes them from the raw body before parsing (belt and suspenders).
 export const doctorRegisterSchema = z.object({
   // Step 1 — Account & Identity
-  full_name: z.string().trim().min(3, "Enter the name as printed on your PMDC certificate."),
-  cnic: z.string().trim().regex(/^\d{5}-\d{7}-\d{1}$/, "CNIC should look like 12345-1234567-1."),
+  full_name: z.string().trim().min(3, "Enter the name as printed on your medical registration."),
+  cnic: z.string().trim().max(40),
   email: z.string().trim().email("Enter a valid email address."),
-  phone: z.string().trim().regex(/^(03\d{2}-?\d{7}|\+92\s?3\d{2}\s?\d{7})$/, "Enter a valid Pakistani mobile number."),
+  phone: z.string().trim().min(1, "Enter a phone number."),
   whatsapp: z.string().trim().max(30).optional().or(z.literal("")),
+  country: z.string().trim().min(1, "Choose a country."),
 
-  // Step 2 — Professional Credentials
-  pmdc_number: z.string().trim().regex(/^\d{5,7}(-[A-Za-z])?$/, "PMDC number should look like 12345-P or 123456."),
+  // Step 2 — Professional Credentials. Pakistan keeps the PMDC format;
+  // every other country sends its own medical license number.
+  pmdc_number: z.string().trim().min(1, "Enter your registration number.").max(40),
   pmdc_registration_type: z.enum(["provisional", "full", "specialist"]),
   pmdc_expiry_date: z.string().trim().min(1, "Pick the PMDC expiry date."),
   specialization: z.string().trim().min(1, "Pick a specialization."),
@@ -139,9 +143,9 @@ export const doctorRegisterSchema = z.object({
   // Step 4 — Documents. Files are uploaded to Supabase Storage client-side
   // first (see components/doctor/registration/StepDocuments.tsx) — only the
   // resulting object paths travel through this API.
-  pmdc_certificate_url: z.string().trim().min(1, "Upload your PMDC certificate."),
+  pmdc_certificate_url: z.string().trim().min(1, "Upload your medical license certificate."),
   degree_certificate_url: z.string().trim().min(1, "Upload your degree certificate."),
-  cnic_front_url: z.string().trim().min(1, "Upload your CNIC."),
+  cnic_front_url: z.string().trim(),
   profile_photo_url: z.string().trim().optional().or(z.literal("")),
 
   // Step 5 — Weekly Schedule
@@ -151,6 +155,23 @@ export const doctorRegisterSchema = z.object({
   declaration_pmdc_valid: z.literal(true, { errorMap: () => ({ message: "This declaration is required." }) }),
   declaration_ai_responsibility: z.literal(true, { errorMap: () => ({ message: "This declaration is required." }) }),
   declaration_terms: z.literal(true, { errorMap: () => ({ message: "This declaration is required." }) }),
+}).superRefine((data, ctx) => {
+  if (!normalizeCountry(data.country)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["country"], message: "Choose a country." });
+  }
+  const phone = phoneError(data.country, data.phone);
+  if (phone) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["phone"], message: phone });
+  if (data.whatsapp?.trim()) {
+    const whatsapp = phoneError(data.country, data.whatsapp);
+    if (whatsapp) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["whatsapp"], message: whatsapp });
+  }
+  const license = licenseError(data.country, data.pmdc_number);
+  if (license) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["pmdc_number"], message: license });
+  const cnic = cnicError(data.country, data.cnic);
+  if (cnic) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["cnic"], message: cnic });
+  if (isPakistan(data.country) && !data.cnic_front_url.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["cnic_front_url"], message: "Upload your CNIC." });
+  }
 });
 export type DoctorRegisterInput = z.infer<typeof doctorRegisterSchema>;
 
@@ -308,5 +329,12 @@ export const doctorProfileUpdateSchema = z.object({
     .optional(),
   accepts_online: z.boolean().optional(),
   accepts_walk_in: z.boolean().optional(),
+  country: z
+    .string()
+    .trim()
+    .min(1, "Choose a country.")
+    .refine((value) => !!normalizeCountry(value), "Choose a country.")
+    .optional(),
+  city: z.string().trim().min(1, "City is required.").max(80).optional(),
 });
 export type DoctorProfileUpdateInput = z.infer<typeof doctorProfileUpdateSchema>;

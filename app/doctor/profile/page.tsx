@@ -10,7 +10,9 @@ import { readPhoto } from "@/lib/image";
 import { PublicHeader } from "@/components/booking/PublicHeader";
 import { DoctorAvatar } from "@/components/booking/DoctorAvatar";
 import { ScheduleManager } from "@/components/doctor/ScheduleManager";
+import { CountrySelect } from "@/components/ui/CountrySelect";
 import { SPECIALIZATIONS } from "@/components/doctor/registration/types";
+import { canonicalCountryName } from "@/lib/countries";
 import { doctorPhoto, type PublicDoctor } from "@/lib/publicDoctors";
 import { doctorName } from "@/lib/doctorDisplay";
 
@@ -21,7 +23,7 @@ type Editable = PublicDoctor & { registration_status: string };
 export default function DoctorProfileEditPage() {
   const { session } = useRequireSession();
   const [doctor, setDoctor] = useState<Editable | null>(null);
-  const [form, setForm] = useState({ specialization: "", consultation_fee_pkr: "0", bio: "", avatar_url: "", accepts_online: true, accepts_walk_in: true });
+  const [form, setForm] = useState({ specialization: "", consultation_fee_pkr: "0", bio: "", avatar_url: "", accepts_online: true, accepts_walk_in: true, country: "Pakistan", city: "" });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -42,6 +44,8 @@ export default function DoctorProfileEditPage() {
           avatar_url: d.avatar_url || "",
           accepts_online: d.accepts_online,
           accepts_walk_in: d.accepts_walk_in,
+          country: canonicalCountryName(d.country),
+          city: d.city || "",
         });
       })
       .catch((e) => setError((e as Error).message));
@@ -121,6 +125,14 @@ export default function DoctorProfileEditPage() {
               <label className="flex flex-col gap-1 text-sm text-text-secondary">
                 Photo URL (optional)
                 <input className={field} value={form.avatar_url} onChange={(e) => setForm({ ...form, avatar_url: e.target.value })} placeholder="https://…" />
+              </label>
+              <label className="flex flex-col gap-1 text-sm text-text-secondary">
+                Country
+                <CountrySelect value={form.country} onChange={(country) => setForm({ ...form, country })} />
+              </label>
+              <label className="flex flex-col gap-1 text-sm text-text-secondary">
+                City
+                <input className={field} value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
               </label>
               <label className="flex flex-col gap-1 text-sm text-text-secondary">
                 Specialty

@@ -207,6 +207,7 @@ export interface Doctor {
   clinic_name: string | null;
   clinic_address: string | null;
   city: string;
+  country?: string | null;
   phone: string;
   whatsapp: string | null;
   email: string | null;

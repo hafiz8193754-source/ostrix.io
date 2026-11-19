@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import type { ReactNode } from "react";
 import type { RegistrationAnswers } from "./types";
 
 interface StepDeclarationsProps {
@@ -12,7 +14,7 @@ interface StepDeclarationsProps {
   error: string | null;
 }
 
-const DECLARATIONS: { key: keyof RegistrationAnswers; text: string }[] = [
+const DECLARATIONS: { key: keyof RegistrationAnswers; text: ReactNode }[] = [
   {
     key: "declaration_pmdc_valid",
     text: "I confirm I am currently registered with PMDC and my registration is valid and not suspended.",
@@ -21,7 +23,16 @@ const DECLARATIONS: { key: keyof RegistrationAnswers; text: string }[] = [
     key: "declaration_ai_responsibility",
     text: "I understand Ostrix provides AI-assisted drafts only, and that I am solely responsible for reviewing, editing, and approving every clinical output before it reaches a patient.",
   },
-  { key: "declaration_terms", text: "I agree to the Terms of Service and Privacy Policy." },
+  {
+    key: "declaration_terms",
+    text: (
+      <>
+        I agree to the <Link href="/terms" className="font-semibold text-accent">Terms of Service</Link>,{" "}
+        <Link href="/privacy" className="font-semibold text-accent">Privacy Policy</Link>, and{" "}
+        <Link href="/refund" className="font-semibold text-accent">Refund Policy</Link>.
+      </>
+    ),
+  },
 ];
 
 export function StepDeclarations({ values, onChange, onBack, onSubmit, submitting, error }: StepDeclarationsProps) {

@@ -1,4 +1,4 @@
-import { companyFields, isPlaceholder } from "@/lib/company";
+import { companyFields } from "@/lib/company";
 
 // Renders only the company fields that have real values; renders nothing if all are empty.
 export function CompanyInfo({ className = "" }: { className?: string }) {
@@ -12,7 +12,6 @@ export function CompanyInfo({ className = "" }: { className?: string }) {
           <dd>{f.href ? <a href={f.href} className="hover:text-accent">{f.value}</a> : f.value}</dd>
         </div>
       ))}
-      {isPlaceholder && <p className="mt-1 italic">Sample details, to be replaced with the registered company information.</p>}
     </dl>
   );
 }

@@ -9,7 +9,22 @@ export const COMPANY = {
   companyNumber: "",
   email: "hafiz8193754@gmail.com",
   phone: "+447878268504",
+  whatsapp: "+447878268504",
 };
+
+export const WHATSAPP_GREETING = "Hi Ostrix, I need help booking a doctor";
+
+export function whatsappLink(text = WHATSAPP_GREETING): string {
+  const digits = COMPANY.whatsapp.replace(/\D/g, "");
+  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+}
+
+const HIDDEN_WHATSAPP = ["/visit", "/doctor/dashboard", "/admin"];
+
+export function showWhatsAppButton(pathname: string): boolean {
+  const path = (pathname.split("?")[0] || "/").replace(/\/+$/, "") || "/";
+  return !HIDDEN_WHATSAPP.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+}
 
 export type CompanyField = { label: string; value: string; href?: string };
 

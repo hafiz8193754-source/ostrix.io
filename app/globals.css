@@ -36,6 +36,10 @@
 
   /* Code blocks stay dark for contrast/readability, even on the light UI. */
   --code-bg: #0D0D0D;
+
+  --whatsapp: #25D366;
+  --whatsapp-ink: #FFFFFF;
+  --whatsapp-ring: #075E54;
 }
 
 /* Dark theme — set via data-theme="dark" on <html>, applied by lib/theme.ts
@@ -69,6 +73,14 @@
   --shadow-lift: 0 2px 4px rgba(0,0,0,0.3), 0 24px 48px -20px rgba(45,212,191,0.25);
 
   --code-bg: #0D0D0D;
+
+  --whatsapp: #25D366;
+  --whatsapp-ink: #FFFFFF;
+  --whatsapp-ring: #075E54;
+}
+
+html[data-hide-whatsapp] .whatsapp-fab {
+  display: none;
 }
 
 * {

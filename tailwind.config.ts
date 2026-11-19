@@ -26,6 +26,11 @@ const config: Config = {
           strong: "var(--warm-strong)",
           soft: "var(--warm-soft)",
         },
+        whatsapp: {
+          DEFAULT: "var(--whatsapp)",
+          ink: "var(--whatsapp-ink)",
+          ring: "var(--whatsapp-ring)",
+        },
         text: {
           primary: "var(--text-primary)",
           secondary: "var(--text-secondary)",

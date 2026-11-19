@@ -16,7 +16,7 @@ const DESCRIPTION =
   "Ostrix offers online doctor consultations, anywhere in the world. Describe your symptoms, get matched to the right PMDC-registered specialist, consult by in-app video or audio, and receive a prescription your doctor has reviewed and digitally signed.";
 
 export const metadata: Metadata = {
-  title: `${BRAND.name} — Online doctor consultations, anywhere in the world`,
+  title: { absolute: `${BRAND.name} — Online doctor consultations, anywhere in the world` },
   description: DESCRIPTION,
   keywords: ["online doctor", "online doctor consultation", "telehealth", "online doctor Pakistan", "PMDC verified doctor", "e-prescription", "video consultation"],
   openGraph: {
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     siteName: BRAND.name,
     locale: "en_US",
   },
-  twitter: { card: "summary", title: `${BRAND.name} — Online doctor consultations, anywhere in the world`, description: DESCRIPTION },
+  twitter: { card: "summary_large_image", title: `${BRAND.name} — Online doctor consultations, anywhere in the world`, description: DESCRIPTION },
 };
 
 const STEPS = [

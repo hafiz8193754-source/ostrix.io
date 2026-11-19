@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { CompanyInfo } from "@/components/home/CompanyInfo";
 
 export const metadata: Metadata = {
-  title: `About ${BRAND.name}`,
+  title: "About",
   description: `${BRAND.name} offers online doctor consultations anywhere in the world with PMDC-registered doctors licensed in Pakistan.`,
 };
 

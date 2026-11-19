@@ -1,10 +1,25 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { FileText, Link2 } from "lucide-react";
 
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
-import { MarkdownRenderer } from "@/components/chat/MarkdownRenderer";
+
+function LazyMarkdown({ content }: { content: string }) {
+  const [Renderer, setRenderer] = useState<((props: { content: string }) => JSX.Element) | null>(null);
+  useEffect(() => {
+    let alive = true;
+    import("@/components/chat/MarkdownRenderer").then((mod) => {
+      if (alive) setRenderer(() => mod.MarkdownRenderer);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  if (!Renderer) return <p className="whitespace-pre-wrap break-words">{content}</p>;
+  return <Renderer content={content} />;
+}
 
 interface MessageBubbleProps {
   role: "user" | "agent";
@@ -60,7 +75,7 @@ export function MessageBubble({ role, text, photo, attachments, sourceUrl }: Mes
             )}
           </>
         ) : (
-          <MarkdownRenderer content={text} />
+          <LazyMarkdown content={text} />
         )}
       </div>
     </motion.div>

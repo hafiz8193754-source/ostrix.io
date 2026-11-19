@@ -5,15 +5,33 @@ import { Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
 
 import "./globals.css";
 import { BRAND } from "@/lib/brand";
+import { siteUrl } from "@/lib/site";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const display = Bricolage_Grotesque({ subsets: ["latin"], weight: ["500", "600", "700", "800"], variable: "--font-display", display: "swap" });
 const body = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono", display: "swap" });
 
+const DESCRIPTION = `${BRAND.name}: talk through symptoms, book a verified doctor, and receive a signed prescription.`;
+
 export const metadata: Metadata = {
-  title: `${BRAND.name} — ${BRAND.tagline}`,
-  description: `${BRAND.name}: talk through symptoms, book a verified doctor, and receive a signed prescription.`,
+  metadataBase: new URL(siteUrl()),
+  title: {
+    default: `${BRAND.name} — ${BRAND.tagline}`,
+    template: `%s — ${BRAND.name}`,
+  },
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: BRAND.name,
+    title: `${BRAND.name} — ${BRAND.tagline}`,
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${BRAND.name} — ${BRAND.tagline}`,
+    description: DESCRIPTION,
+  },
 };
 
 // Reads the theme-preference cookie (not chat data — a small UI preference,

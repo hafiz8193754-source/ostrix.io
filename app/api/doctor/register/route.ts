@@ -4,16 +4,24 @@ import { doctorRegisterSchema } from "@/lib/schemas";
 import { normalizeCountry, storedPhone } from "@/lib/countries";
 import { createNotification } from "@/lib/notifications";
 import { getDoctorByUserId, isPmdcNumberTaken, logDoctorVerification, registerDoctor } from "@/lib/clinical";
+import { enforceRateLimit, rateLimited } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
   const auth = await getUserFromRequest(request);
   if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
   const { user, db } = auth;
+  const limited = rateLimited(await enforceRateLimit(request, { name: "doctor-register", limit: 5, windowSec: 3600, userId: user.id }));
+  if (limited) return limited;
 
   const existing = await getDoctorByUserId(db, user.id);
   if (existing) return NextResponse.json({ error: "You already have a doctor profile." }, { status: 400 });
 
-  const rawBody = await request.json();
+  let rawBody: unknown;
+  try {
+    rawBody = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+  }
   // pmdc_verified must never be settable by this route, no matter what the
   // client sends — strip it (and every other verification field) before it
   // ever reaches zod or the DB, on top of those fields simply not being part

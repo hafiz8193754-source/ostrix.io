@@ -14,5 +14,32 @@ const nextConfig = {
       { source: "/admin/payments", destination: "/admin?tab=payments", permanent: false },
     ];
   },
+  async headers() {
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https://*.supabase.co",
+      "font-src 'self' data:",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.x.ai https://api.twilio.com https://*.twilio.com https://nominatim.openstreetmap.org",
+      "media-src 'self' blob: mediastream:",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
+    ].join("; ");
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Content-Security-Policy", value: csp },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
+        ],
+      },
+    ];
+  },
 };
 export default nextConfig;

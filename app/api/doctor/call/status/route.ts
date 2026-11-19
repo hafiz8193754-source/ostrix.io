@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { verifyTwilioRequest } from "@/lib/twilio";
 import { markCallEnded, logClinicalAudit } from "@/lib/clinical";
-import { getUserFromAccessToken } from "@/lib/serverAuth";
+import { hasServiceRoleKey, requireServiceClient } from "@/lib/serverAuth";
+import { verifyCallState } from "@/lib/callState";
 
 // Handles both the call-level statusCallback (fires once per leg, CallStatus
 // "completed") and the conference-level statusCallback (fires on
@@ -14,9 +15,10 @@ export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
   const consultationId = searchParams.get("consultation");
   if (!consultationId) return NextResponse.json({ ok: true });
-  const session = await getUserFromAccessToken(searchParams.get("token") || "");
-  if (!session) return NextResponse.json({ error: "Invalid session." }, { status: 401 });
-  const { db } = session;
+  if (!verifyCallState(searchParams.get("state") || "", consultationId))
+    return NextResponse.json({ error: "Invalid call state." }, { status: 401 });
+  if (!hasServiceRoleKey()) return NextResponse.json({ error: "Server not fully configured" }, { status: 503 });
+  const db = requireServiceClient();
 
   const callStatus = params.CallStatus;
   const conferenceEvent = params.StatusCallbackEvent;

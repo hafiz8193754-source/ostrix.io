@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/serverAuth";
 import { transcribeAudio } from "@/lib/whisper";
+import { enforceRateLimit, rateLimited } from "@/lib/rateLimit";
 
 export const maxDuration = 90;
 
@@ -12,6 +13,8 @@ const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
 export async function POST(request: Request) {
   const auth = await getUserFromRequest(request);
   if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const limited = rateLimited(await enforceRateLimit(request, { name: "transcribe", limit: 30, windowSec: 3600, userId: auth.user.id }));
+  if (limited) return limited;
   const { user, db } = auth;
 
   const form = await request.formData().catch(() => null);

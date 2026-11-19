@@ -6,6 +6,7 @@ import { searchDoctors, logClinicalAudit } from "@/lib/clinical";
 import { runPresenceSweep } from "@/lib/presenceSweep";
 import { CLINICAL_DISCLAIMER, EMERGENCY_HOSPITALS } from "@/lib/clinicalSafety";
 import { FALLBACK_SPECIALTY, TRIAGE_SYSTEM, normalizeTriage, triageSafetyNet, type TriageResult } from "@/lib/triage";
+import { enforceRateLimit, rateLimited } from "@/lib/rateLimit";
 
 export const maxDuration = 60;
 
@@ -14,6 +15,8 @@ const schema = z.object({ symptoms: z.string().trim().min(3, "Describe your symp
 export async function POST(request: Request) {
   const auth = await getUserFromRequest(request);
   if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const limited = rateLimited(await enforceRateLimit(request, { name: "triage", limit: 20, windowSec: 3600, userId: auth.user.id }));
+  if (limited) return limited;
   const { db } = auth;
   const parsed = schema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid request." }, { status: 400 });

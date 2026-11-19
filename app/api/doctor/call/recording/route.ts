@@ -4,7 +4,8 @@ import { saveCallRecording, getConsultation, getAppointmentWithParties, savePres
 import { generatePrescriptionDraft } from "@/lib/clinicalAI";
 import { transcribeAudio } from "@/lib/whisper";
 import { createNotification } from "@/lib/notifications";
-import { getUserFromAccessToken } from "@/lib/serverAuth";
+import { hasServiceRoleKey, requireServiceClient } from "@/lib/serverAuth";
+import { verifyCallState } from "@/lib/callState";
 
 export const maxDuration = 90;
 
@@ -30,9 +31,10 @@ export async function POST(request: Request) {
   const consultationId = searchParams.get("consultation");
   if (!consultationId) return NextResponse.json({ ok: true });
   if (params.RecordingStatus !== "completed" || !params.RecordingUrl) return NextResponse.json({ ok: true });
-  const session = await getUserFromAccessToken(searchParams.get("token") || "");
-  if (!session) return NextResponse.json({ error: "Invalid session." }, { status: 401 });
-  const { db } = session;
+  if (!verifyCallState(searchParams.get("state") || "", consultationId))
+    return NextResponse.json({ error: "Invalid call state." }, { status: 401 });
+  if (!hasServiceRoleKey()) return NextResponse.json({ error: "Server not fully configured" }, { status: 503 });
+  const db = requireServiceClient();
 
   try {
     const recordingUrl = `${params.RecordingUrl}.mp3`;

@@ -8,6 +8,7 @@ import { runPresenceSweep } from "@/lib/presenceSweep";
 import type { SymptomAnalysis, Urgency } from "@/types";
 import { ROUTING_SYSTEM, resolveRoute, DEFAULT_SPECIALIZATION } from "@/lib/routing";
 import { triageSafetyNet } from "@/lib/triage";
+import { enforceRateLimit, rateLimited } from "@/lib/rateLimit";
 
 export const maxDuration = 90;
 
@@ -65,6 +66,8 @@ const URDU_NAMES: Record<string, string> = {
 export async function POST(request: Request) {
   const auth = await getUserFromRequest(request);
   if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const limited = rateLimited(await enforceRateLimit(request, { name: "doctor-analyze", limit: 30, windowSec: 3600, userId: auth.user.id }));
+  if (limited) return limited;
   const { user, db } = auth;
 
   const body = await request.json();

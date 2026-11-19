@@ -244,13 +244,13 @@ alter table public.prescriptions enable row level security;
 alter table public.clinical_audit_log enable row level security;
 
 drop policy if exists "Doctors own profile" on public.doctors;
-create policy "Doctors own profile" on public.doctors for all using (auth.uid() = user_id);
+create policy "Doctors own profile" on public.doctors
+  for all to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
 
--- Anyone signed in can browse verified, active doctors for the directory —
--- writes still only ever happen from the server via the service-role client.
-drop policy if exists "Public reads verified doctors" on public.doctors;
-create policy "Public reads verified doctors" on public.doctors for select
-  using (pmdc_verified = true and is_active = true);
+-- Directory reads go through public.public_doctors (see launch security migration).
+-- The base table is not readable by anon.
 
 drop policy if exists "Patients own profile" on public.patients;
 create policy "Patients own profile" on public.patients for all using (auth.uid() = user_id);

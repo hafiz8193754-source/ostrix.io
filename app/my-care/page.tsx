@@ -46,7 +46,7 @@ export default function MyCarePage() {
     if (!res.ok) setError(data.error || "Could not load your care records.");
     else setCare(data as Care);
     const [bankRes, payRes] = await Promise.all([
-      fetch("/api/payments/bank").then((r) => r.json()).catch(() => ({})),
+      fetch("/api/payments/bank", { headers: { authorization: `Bearer ${s.access_token}` } }).then((r) => r.json()).catch(() => ({})),
       fetch("/api/patient/payments", { headers: { authorization: `Bearer ${s.access_token}` } }).then((r) => r.json()).catch(() => ({})),
     ]);
     setBank(bankRes.bank || null);

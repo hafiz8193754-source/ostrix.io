@@ -6,6 +6,7 @@ import { Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { BRAND } from "@/lib/brand";
 import { siteUrl } from "@/lib/site";
+import { WhatsAppButton } from "@/components/brand/WhatsAppButton";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const display = Bricolage_Grotesque({ subsets: ["latin"], weight: ["500", "600", "700", "800"], variable: "--font-display", display: "swap" });
@@ -46,14 +47,24 @@ const THEME_SCRIPT = `(function(){try{
   document.documentElement.setAttribute("data-theme",resolved);
 }catch(e){}})();`;
 
+// Hides the WhatsApp button before first paint on visit and dashboard routes.
+// Client navigations update the same flag from WhatsAppButton.
+const WHATSAPP_SCRIPT = `(function(){try{
+  var p=location.pathname.replace(/\\/+$/,"")||"/";
+  var hide=p==="/admin"||p.indexOf("/admin/")===0||p==="/visit"||p.indexOf("/visit/")===0||p==="/doctor/dashboard"||p.indexOf("/doctor/dashboard/")===0;
+  if(hide) document.documentElement.setAttribute("data-hide-whatsapp","1");
+}catch(e){}})();`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: WHATSAPP_SCRIPT }} />
       </head>
       <body>
         <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+        <WhatsAppButton />
       </body>
     </html>
   );

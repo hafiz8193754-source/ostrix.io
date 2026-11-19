@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, BadgeCheck } from "lucide-react";
@@ -10,6 +11,15 @@ import { doctorPhoto, getApprovedDoctor, getDoctorSlots } from "@/lib/publicDoct
 import { doctorName, specialtyLabel } from "@/lib/doctorDisplay";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  if (!/^[0-9a-f-]{36}$/i.test(params.id)) return { title: "Doctor" };
+  const doctor = await getApprovedDoctor(createAnonAuthClient(), params.id);
+  if (!doctor) return { title: "Doctor" };
+  const title = doctorName(doctor.full_name);
+  const description = `${title}, ${specialtyLabel(doctor.specialization)} in ${doctor.city}. Book an online or walk-in visit on Ostrix.`;
+  return { title, description, openGraph: { title, description } };
+}
 
 export default async function DoctorProfilePage({ params }: { params: { id: string } }) {
   if (!/^[0-9a-f-]{36}$/i.test(params.id)) notFound();

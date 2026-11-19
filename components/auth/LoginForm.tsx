@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,6 +37,7 @@ export function LoginForm({ initialMode = "signin" }: { initialMode?: "signin" |
   useEffect(() => setNextPath(sameSiteNext()), []);
   const [err, setErr] = useState("");
   const [notice, setNotice] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Don't mount the password form until we know the saved session is gone.
   // Otherwise a return visit refreshes the access token and the form (often
@@ -53,6 +55,7 @@ export function LoginForm({ initialMode = "signin" }: { initialMode?: "signin" |
   async function onSubmit(values: AuthInput) {
     setErr("");
     setNotice("");
+    if (mode === "signup" && !acceptedTerms) return setErr("Agree to the Terms, Privacy Policy, and Refund Policy to create an account.");
     const fn =
       mode === "signin"
         ? supabase.auth.signInWithPassword(values)
@@ -86,7 +89,18 @@ export function LoginForm({ initialMode = "signin" }: { initialMode?: "signin" |
         </h2>
         <p className="mb-5 mt-1 text-xs text-text-secondary">{BRAND.tagline}</p>
 
-        {GOOGLE_LOGIN_ENABLED && (
+        {mode === "signup" && (
+          <label className="mb-4 flex items-start gap-2 text-xs text-text-secondary">
+            <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="mt-0.5 h-4 w-4 accent-accent" />
+            <span>
+              I agree to the <Link href="/terms" className="font-semibold text-accent">Terms</Link>,{" "}
+              <Link href="/privacy" className="font-semibold text-accent">Privacy Policy</Link>, and{" "}
+              <Link href="/refund" className="font-semibold text-accent">Refund Policy</Link>.
+            </span>
+          </label>
+        )}
+
+        {GOOGLE_LOGIN_ENABLED && (mode === "signin" || acceptedTerms) && (
           <>
             <GoogleButton next={nextPath} />
             <OrDivider />
@@ -109,7 +123,7 @@ export function LoginForm({ initialMode = "signin" }: { initialMode?: "signin" |
           )}
           {err && <p className="text-xs text-red-400">{err}</p>}
           {notice && <p className="text-xs text-text-secondary">{notice}</p>}
-          <Button type="submit" disabled={isSubmitting} className="w-full justify-center">
+          <Button type="submit" disabled={isSubmitting || (mode === "signup" && !acceptedTerms)} className="w-full justify-center">
             {isSubmitting ? "One moment…" : mode === "signin" ? "Sign in" : "Create account"}
           </Button>
         </form>
@@ -132,6 +146,11 @@ export function LoginForm({ initialMode = "signin" }: { initialMode?: "signin" |
           )}
         </div>
       </div>
+      <p className="flex gap-4 text-xs text-text-muted">
+        <Link href="/privacy" className="hover:text-accent">Privacy</Link>
+        <Link href="/terms" className="hover:text-accent">Terms</Link>
+        <Link href="/refund" className="hover:text-accent">Refunds</Link>
+      </p>
     </div>
   );
 }

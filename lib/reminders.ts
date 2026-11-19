@@ -1,14 +1,20 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { hasServiceRoleKey, requireServiceClient } from "@/lib/serverAuth";
-import { twilioClient, twilioConfigured } from "@/lib/twilio";
+import { twilioClient } from "@/lib/twilio";
 import { normalizePhone, pkNowParts, toMinutes } from "@/lib/slots";
 
-// Patient reminders over Twilio SMS (+ WhatsApp when TWILIO_WHATSAPP_FROM is set).
-// NOTE: a Twilio *trial* account can only deliver to numbers verified in the
-// Twilio console; other numbers fail and are logged as 'failed'.
+// Appointment reminders go out on WhatsApp when TWILIO_WHATSAPP_FROM is set.
+// SMS is used only when WhatsApp is not configured. A business-initiated
+// WhatsApp message outside the 24-hour session needs an approved Content
+// template: set TWILIO_WHATSAPP_REMINDER_CONTENT_SID to send that template.
+// Without the SID we send the same text as a freeform body.
+// A Twilio trial account can only deliver SMS to numbers verified in the console.
 export type ReminderKind = "booked" | "confirmed" | "one_hour";
-type Channel = "sms" | "whatsapp";
+export type ReminderChannel = "sms" | "whatsapp";
+
+// Approved-template body. Variables: 1 headline, 2 doctor, 3 date and time, 4 next step.
+export const REMINDER_TEMPLATE = "Ostrix: {{1}} with {{2}} on {{3}} (PKT). {{4}}";
 
 function appUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL || "https://ostrix-io.vercel.app").replace(/\/$/, "");
@@ -18,36 +24,65 @@ function doctorTitle(name: string): string {
   return `Dr. ${name.replace(/^dr\.?\s+/i, "")}`;
 }
 
-export function reminderText(kind: ReminderKind, a: { date: string; time: string; doctor: string; fee: number; paid: boolean }): string {
-  const when = `${a.date} at ${a.time.slice(0, 5)} (PKT)`;
-  if (kind === "booked")
-    return a.fee > 0 && !a.paid
-      ? `Ostrix: booked with ${doctorTitle(a.doctor)} on ${when}. Pay PKR ${a.fee} by bank transfer in My care to confirm: ${appUrl()}/my-care`
-      : `Ostrix: booked with ${doctorTitle(a.doctor)} on ${when}. ${appUrl()}/my-care`;
-  if (kind === "confirmed") return `Ostrix: your visit with ${doctorTitle(a.doctor)} on ${when} is confirmed. ${appUrl()}/my-care`;
-  return `Ostrix reminder: your visit with ${doctorTitle(a.doctor)} starts in about 1 hour (${when}). Join from ${appUrl()}/my-care`;
+export type ReminderFacts = { date: string; time: string; doctor: string; fee: number; paid: boolean };
+
+export function reminderVariables(kind: ReminderKind, a: ReminderFacts): Record<"1" | "2" | "3" | "4", string> {
+  const when = `${a.date} at ${a.time.slice(0, 5)}`;
+  const doctor = doctorTitle(a.doctor);
+  const care = `${appUrl()}/my-care`;
+  let headline = "Your visit is booked";
+  let next = `Details: ${care}`;
+  if (kind === "booked" && a.fee > 0 && !a.paid) next = `Pay PKR ${a.fee} by bank transfer in My care to confirm: ${care}`;
+  if (kind === "confirmed") headline = "Your visit is confirmed";
+  if (kind === "one_hour") {
+    headline = "Your visit starts in about 1 hour";
+    next = `Join from ${care}`;
+  }
+  return { "1": headline, "2": doctor, "3": when, "4": next };
 }
 
-function channels(): Channel[] {
-  return process.env.TWILIO_WHATSAPP_FROM ? ["sms", "whatsapp"] : ["sms"];
+export function reminderText(kind: ReminderKind, a: ReminderFacts): string {
+  const v = reminderVariables(kind, a);
+  return REMINDER_TEMPLATE.replace(/\{\{(\d)\}\}/g, (_, key: string) => v[key as "1"]);
 }
 
-async function sendOne(channel: Channel, to: string, body: string): Promise<void> {
+export function whatsappAddress(raw: string): string {
+  const trimmed = raw.trim();
+  return trimmed.startsWith("whatsapp:") ? trimmed : `whatsapp:${trimmed}`;
+}
+
+// WhatsApp when a sender is configured. SMS only as the fallback.
+export function reminderChannel(): ReminderChannel | null {
+  if (process.env.TWILIO_WHATSAPP_FROM?.trim()) return "whatsapp";
+  if (process.env.TWILIO_PHONE_NUMBER?.trim()) return "sms";
+  return null;
+}
+
+function remindersConfigured(): boolean {
+  return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && reminderChannel());
+}
+
+async function sendOne(channel: ReminderChannel, to: string, body: string, variables: Record<string, string>): Promise<void> {
   const client = twilioClient();
   if (channel === "sms") {
     await client.messages.create({ to, from: process.env.TWILIO_PHONE_NUMBER || "", body });
-  } else {
-    const from = process.env.TWILIO_WHATSAPP_FROM || "";
-    await client.messages.create({ to: `whatsapp:${to}`, from: from.startsWith("whatsapp:") ? from : `whatsapp:${from}`, body });
+    return;
   }
+  const from = whatsappAddress(process.env.TWILIO_WHATSAPP_FROM || "");
+  const contentSid = process.env.TWILIO_WHATSAPP_REMINDER_CONTENT_SID?.trim();
+  await client.messages.create(
+    contentSid
+      ? { to: whatsappAddress(to), from, contentSid, contentVariables: JSON.stringify(variables) }
+      : { to: whatsappAddress(to), from, body }
+  );
 }
 
-// Sends one reminder kind for an appointment on every configured channel,
+// Sends one reminder kind on WhatsApp, or on SMS when WhatsApp is not configured,
 // at most once per (appointment, kind, channel). Never throws.
 export async function sendAppointmentReminder(appointmentId: string, kind: ReminderKind, db?: SupabaseClient): Promise<{ sent: number; failed: number; skipped: number }> {
   const res = { sent: 0, failed: 0, skipped: 0 };
   try {
-    if (!twilioConfigured() || (!db && !hasServiceRoleKey())) return res;
+    if (!remindersConfigured() || (!db && !hasServiceRoleKey())) return res;
     const admin = db || requireServiceClient();
     const { data: appt } = await admin
       .from("appointments")
@@ -58,35 +93,35 @@ export async function sendAppointmentReminder(appointmentId: string, kind: Remin
     const patient = (Array.isArray(appt.patient) ? appt.patient[0] : appt.patient) as { phone: string | null } | null;
     const doctor = (Array.isArray(appt.doctor) ? appt.doctor[0] : appt.doctor) as { full_name: string } | null;
     const to = patient?.phone ? normalizePhone(patient.phone) : null;
-    const body = reminderText(kind, {
+    const facts: ReminderFacts = {
       date: appt.appointment_date,
       time: String(appt.appointment_time),
       doctor: doctor?.full_name || "your doctor",
       fee: appt.fee_pkr || 0,
       paid: appt.payment_status === "paid" || appt.payment_status === "not_required",
-    });
-    for (const channel of channels()) {
-      // Claim the slot first so concurrent runs never double-send.
-      const { error: claimErr } = await admin
+    };
+    const body = reminderText(kind, facts);
+    const channel = reminderChannel();
+    if (!channel) return res;
+    // Claim the slot first so concurrent runs never double-send.
+    const { error: claimErr } = await admin
+      .from("appointment_reminders")
+      .insert({ appointment_id: appointmentId, kind, channel, status: to ? "sent" : "skipped", error: to ? null : "no valid phone" });
+    if (claimErr || !to) {
+      if (!claimErr) res.skipped++;
+      return res;
+    }
+    try {
+      await sendOne(channel, to, body, reminderVariables(kind, facts));
+      res.sent++;
+    } catch (e) {
+      res.failed++;
+      await admin
         .from("appointment_reminders")
-        .insert({ appointment_id: appointmentId, kind, channel, status: to ? "sent" : "skipped", error: to ? null : "no valid phone" });
-      if (claimErr) continue; // already handled
-      if (!to) {
-        res.skipped++;
-        continue;
-      }
-      try {
-        await sendOne(channel, to, body);
-        res.sent++;
-      } catch (e) {
-        res.failed++;
-        await admin
-          .from("appointment_reminders")
-          .update({ status: "failed", error: String((e as Error).message || e).slice(0, 300) })
-          .eq("appointment_id", appointmentId)
-          .eq("kind", kind)
-          .eq("channel", channel);
-      }
+        .update({ status: "failed", error: String((e as Error).message || e).slice(0, 300) })
+        .eq("appointment_id", appointmentId)
+        .eq("kind", kind)
+        .eq("channel", channel);
     }
   } catch {
     // Reminders are best-effort; booking/confirmation flows never fail on them.

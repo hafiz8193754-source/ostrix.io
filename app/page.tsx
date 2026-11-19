@@ -320,6 +320,9 @@ export default function Landing() {
             <Link href="/doctor/register" className="hover:text-accent">For doctors</Link>
             <Link href="/about" className="hover:text-accent">About Ostrix</Link>
             <a href="#faq" className="hover:text-accent">FAQ</a>
+            <Link href="/privacy" className="hover:text-accent">Privacy</Link>
+            <Link href="/terms" className="hover:text-accent">Terms</Link>
+            <Link href="/refund" className="hover:text-accent">Refunds</Link>
           </nav>
         </div>
         <p className="mx-auto mt-10 max-w-6xl border-t border-border-subtle pt-6 text-xs text-text-muted">© {new Date().getFullYear()} {BRAND.name}</p>

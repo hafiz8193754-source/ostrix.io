@@ -103,6 +103,7 @@ export function DoctorReviewPanel({ doctor, accessToken, onReviewed }: DoctorRev
           <SummaryRow label="Clinic" value={doctor.clinic_name || ""} />
           <SummaryRow label="Address" value={doctor.clinic_address || ""} />
           <SummaryRow label="City" value={doctor.city} />
+          <SummaryRow label="Country" value={doctor.country || ""} />
           <SummaryRow label="Fee" value={`PKR ${doctor.consultation_fee_pkr}`} />
           <SummaryRow label="Bio" value={doctor.bio || ""} />
         </div>

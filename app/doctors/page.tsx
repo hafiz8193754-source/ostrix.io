@@ -94,7 +94,7 @@ export default function DoctorsPage() {
                     <span className="break-words">{doctorName(d.full_name)}</span>
                     <span className="inline-flex items-center gap-0.5 text-xs font-medium text-accent"><BadgeCheck className="h-4 w-4" /> PMDC verified</span>
                   </p>
-                  <p className="text-sm text-text-secondary">{specialtyLabel(d.specialization)} · {d.city}</p>
+                  <p className="text-sm text-text-secondary">{specialtyLabel(d.specialization)} · {d.city}{d.country ? `, ${d.country}` : ""}</p>
                   <p className="text-sm text-text-muted">PMDC {d.pmdc_number}</p>
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                     <span className="text-sm font-semibold text-text-primary">

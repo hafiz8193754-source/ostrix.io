@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { isPakistan, licenseError } from "@/lib/countries";
 import { fieldClass, inputClass, LANGUAGES, SPECIALIZATIONS, type StepProps } from "./types";
 import { StepFooter } from "./StepFooter";
 import { cn } from "@/lib/utils";
 
-const PMDC_RE = /^\d{5,7}(-[A-Za-z])?$/;
 const CURRENT_YEAR = new Date().getFullYear();
 
 export function StepCredentials({ values, onChange, onNext, onBack }: StepProps) {
   const [touched, setTouched] = useState(false);
 
-  const pmdcValid = PMDC_RE.test(values.pmdc_number.trim());
+  const pakistan = isPakistan(values.country);
+  const licenseMessage = licenseError(values.country, values.pmdc_number);
+  const pmdcValid = !licenseMessage;
   const expiryValid = !!values.pmdc_expiry_date && new Date(values.pmdc_expiry_date) > new Date();
   const gradYear = parseInt(values.year_of_graduation, 10);
   const gradValid = Number.isFinite(gradYear) && gradYear >= 1960 && gradYear <= CURRENT_YEAR;
@@ -42,18 +44,18 @@ export function StepCredentials({ values, onChange, onNext, onBack }: StepProps)
 
       <div className="grid grid-cols-2 gap-4">
         <label className={fieldClass}>
-          PMDC registration number
+          {pakistan ? "PMDC registration number" : "Medical license number"}
           <input
             value={values.pmdc_number}
             onChange={(e) => onChange({ pmdc_number: e.target.value })}
-            placeholder="12345-P"
+            placeholder={pakistan ? "12345-P" : "License number"}
             className={inputClass}
           />
-          <span className="text-[11px] text-text-muted">As printed on your PMDC certificate.</span>
-          {touched && !pmdcValid && <span className="text-xs text-red-500">PMDC number should look like 12345-P or 123456.</span>}
+          <span className="text-[11px] text-text-muted">{pakistan ? "As printed on your PMDC certificate." : "As printed on your medical registration."}</span>
+          {touched && !pmdcValid && <span className="text-xs text-red-500">{licenseMessage}</span>}
         </label>
         <label className={fieldClass}>
-          PMDC registration type
+          {pakistan ? "PMDC registration type" : "Registration type"}
           <select
             value={values.pmdc_registration_type}
             onChange={(e) => onChange({ pmdc_registration_type: e.target.value as StepProps["values"]["pmdc_registration_type"] })}
@@ -69,7 +71,7 @@ export function StepCredentials({ values, onChange, onNext, onBack }: StepProps)
       </div>
 
       <label className={fieldClass}>
-        PMDC expiry date
+        {pakistan ? "PMDC expiry date" : "License expiry date"}
         <input
           type="date"
           value={values.pmdc_expiry_date}

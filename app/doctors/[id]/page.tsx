@@ -39,6 +39,7 @@ export default async function DoctorProfilePage({ params }: { params: { id: stri
             <div><dt className="text-text-muted">Fee</dt><dd className="font-semibold text-text-primary">{doctor.consultation_fee_pkr > 0 ? `PKR ${doctor.consultation_fee_pkr.toLocaleString()}` : "Not listed"}</dd></div>
             <div><dt className="text-text-muted">Experience</dt><dd className="font-semibold text-text-primary">{doctor.experience_years} years</dd></div>
             <div><dt className="text-text-muted">City</dt><dd className="font-semibold text-text-primary">{doctor.city}</dd></div>
+            {doctor.country && <div><dt className="text-text-muted">Country</dt><dd className="font-semibold text-text-primary">{doctor.country}</dd></div>}
             <div className="col-span-2"><dt className="text-text-muted">Qualifications</dt><dd className="break-words text-text-primary">{doctor.qualifications}</dd></div>
             {doctor.clinic_name && <div className="col-span-2"><dt className="text-text-muted">Clinic</dt><dd className="break-words text-text-primary">{doctor.clinic_name}</dd></div>}
             {doctor.languages?.length ? <div className="col-span-2"><dt className="text-text-muted">Languages</dt><dd className="text-text-primary">{doctor.languages.join(", ")}</dd></div> : null}

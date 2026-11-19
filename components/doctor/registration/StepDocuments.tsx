@@ -4,17 +4,21 @@ import { useRef, useState } from "react";
 import { Paperclip, Check, Loader2, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { readPhoto } from "@/lib/image";
+import { isPakistan } from "@/lib/countries";
 import type { RegistrationAnswers, StepProps } from "./types";
 import { StepFooter } from "./StepFooter";
 
 type DocKey = "pmdc_certificate_url" | "degree_certificate_url" | "cnic_front_url" | "profile_photo_url";
 
-const DOCS: { key: DocKey; label: string; required: boolean }[] = [
-  { key: "pmdc_certificate_url", label: "PMDC certificate", required: true },
-  { key: "degree_certificate_url", label: "Degree certificate (MBBS/specialist)", required: true },
-  { key: "cnic_front_url", label: "CNIC front", required: true },
-  { key: "profile_photo_url", label: "Profile photo (optional)", required: false },
-];
+function documentsFor(country: string): { key: DocKey; label: string; required: boolean }[] {
+  const pakistan = isPakistan(country);
+  return [
+    { key: "pmdc_certificate_url", label: pakistan ? "PMDC certificate" : "Medical license certificate", required: true },
+    { key: "degree_certificate_url", label: "Degree certificate", required: true },
+    { key: "cnic_front_url", label: pakistan ? "CNIC front" : "National ID (optional)", required: pakistan },
+    { key: "profile_photo_url", label: "Profile photo (optional)", required: false },
+  ];
+}
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -30,7 +34,8 @@ export function StepDocuments({ values, onChange, onNext, onBack }: StepProps) {
   const [error, setError] = useState<string | null>(null);
   const fileRefs = useRef<Partial<Record<DocKey, HTMLInputElement | null>>>({});
 
-  const canContinue = !!values.pmdc_certificate_url && !!values.degree_certificate_url && !!values.cnic_front_url;
+  const docs = documentsFor(values.country);
+  const canContinue = docs.every((doc) => !doc.required || !!values[doc.key]);
 
   async function handleFile(key: DocKey, file: File) {
     setError(null);
@@ -85,7 +90,7 @@ export function StepDocuments({ values, onChange, onNext, onBack }: StepProps) {
       </div>
 
       <div className="flex flex-col gap-2.5">
-        {DOCS.map((doc) => {
+        {docs.map((doc) => {
           const value = values[doc.key];
           const isUploading = uploading === doc.key;
           return (

@@ -4,6 +4,7 @@ import { getUserFromRequest } from "@/lib/serverAuth";
 import { getDoctorByUserId } from "@/lib/clinical";
 import { doctorProfileUpdateSchema } from "@/lib/schemas";
 import { SPECIALIZATIONS } from "@/components/doctor/registration/types";
+import { normalizeCountry } from "@/lib/countries";
 import { PUBLIC_DOCTOR_COLUMNS } from "@/lib/publicDoctors";
 
 export async function GET(request: Request) {
@@ -35,6 +36,12 @@ export async function PATCH(request: Request) {
   if (input.avatar_url !== undefined) patch.avatar_url = input.avatar_url || null;
   if (input.accepts_online !== undefined) patch.accepts_online = input.accepts_online;
   if (input.accepts_walk_in !== undefined) patch.accepts_walk_in = input.accepts_walk_in;
+  if (input.country !== undefined) {
+    const country = normalizeCountry(input.country);
+    if (!country) return NextResponse.json({ error: "Choose a country." }, { status: 400 });
+    patch.country = country.name;
+  }
+  if (input.city !== undefined) patch.city = input.city;
 
   const { data, error } = await auth.db
     .from("doctors")

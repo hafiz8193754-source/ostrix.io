@@ -21,21 +21,6 @@ export const SPECIALIZATIONS = [
 
 export const LANGUAGES = ["English", "Urdu", "Punjabi", "Pashto", "Sindhi", "Balochi", "Saraiki"];
 
-export const CITIES = [
-  "Lahore",
-  "Karachi",
-  "Islamabad",
-  "Rawalpindi",
-  "Faisalabad",
-  "Multan",
-  "Peshawar",
-  "Quetta",
-  "Sialkot",
-  "Gujranwala",
-  "Hyderabad",
-  "Other",
-];
-
 export const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export const SLOT_DURATIONS = [10, 15, 20, 30, 45, 60];
@@ -83,6 +68,8 @@ export interface RegistrationAnswers {
   // Step 3 — Practice Details
   clinic_name: string;
   clinic_address: string;
+  /** Canonical English country name from the shared ISO list. */
+  country: string;
   city: string;
   cityOther: string;
   accepts_online: boolean;
@@ -125,7 +112,8 @@ export function initialAnswers(): RegistrationAnswers {
     languages: ["English", "Urdu"],
     clinic_name: "",
     clinic_address: "",
-    city: CITIES[0],
+    country: "Pakistan",
+    city: "",
     cityOther: "",
     accepts_online: true,
     accepts_walk_in: true,

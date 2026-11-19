@@ -34,12 +34,7 @@ export function doctorPhoto(d: Pick<PublicDoctor, "avatar_url" | "profile_photo_
 }
 
 export async function listApprovedDoctors(db: SupabaseClient, filters: { specialization?: string; city?: string; q?: string } = {}): Promise<PublicDoctor[]> {
-  let query = db
-    .from("doctors")
-    .select(PUBLIC_DOCTOR_COLUMNS)
-    .eq("is_active", true)
-    .eq("pmdc_verified", true)
-    .eq("registration_status", "verified");
+  let query = db.from("public_doctors").select(PUBLIC_DOCTOR_COLUMNS);
   if (filters.specialization) query = query.eq("specialization", filters.specialization);
   if (filters.city) query = query.ilike("city", filters.city);
   if (filters.q) query = query.ilike("full_name", `%${filters.q.replace(/[%_,()]/g, "")}%`);
@@ -49,14 +44,7 @@ export async function listApprovedDoctors(db: SupabaseClient, filters: { special
 }
 
 export async function getApprovedDoctor(db: SupabaseClient, id: string): Promise<PublicDoctor | null> {
-  const { data } = await db
-    .from("doctors")
-    .select(PUBLIC_DOCTOR_COLUMNS)
-    .eq("id", id)
-    .eq("is_active", true)
-    .eq("pmdc_verified", true)
-    .eq("registration_status", "verified")
-    .maybeSingle();
+  const { data } = await db.from("public_doctors").select(PUBLIC_DOCTOR_COLUMNS).eq("id", id).maybeSingle();
   return (data as unknown as PublicDoctor) || null;
 }
 

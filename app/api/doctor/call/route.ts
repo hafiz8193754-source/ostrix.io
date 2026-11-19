@@ -3,6 +3,7 @@ import { getUserFromRequest } from "@/lib/serverAuth";
 import { callStartSchema } from "@/lib/schemas";
 import { getAppointmentWithParties, getOrCreateConsultation, saveConsultationCallSid, logClinicalAudit, updateAppointmentStatus } from "@/lib/clinical";
 import { twilioClient, twilioConfigured } from "@/lib/twilio";
+import { signCallState } from "@/lib/callState";
 
 // Real Twilio Voice conference bridge — replaces the earlier stub. Places
 // two outbound calls (doctor + patient), each joining the same conference
@@ -40,18 +41,23 @@ export async function POST(request: Request) {
   const conferenceName = `consultation-${consultationId}`;
   const client = twilioClient();
   const from = process.env.TWILIO_PHONE_NUMBER as string;
-  const accessToken = auth.token;
+  let state: string;
+  try {
+    state = signCallState(consultationId);
+  } catch {
+    return NextResponse.json({ error: "Calling isn't configured yet — a call-state secret is missing." }, { status: 503 });
+  }
 
-  function withSession(path: string, extra: Record<string, string> = {}) {
+  function withState(path: string, extra: Record<string, string> = {}) {
     const u = new URL(`${appUrl}${path}`);
     u.searchParams.set("consultation", consultationId);
-    u.searchParams.set("token", accessToken);
+    u.searchParams.set("state", state);
     for (const [key, value] of Object.entries(extra)) u.searchParams.set(key, value);
     return u.toString();
   }
 
   function twimlUrl(role: "doctor" | "patient") {
-    return withSession("/api/doctor/call/twiml", { conference: conferenceName, role });
+    return withState("/api/doctor/call/twiml", { conference: conferenceName, role });
   }
 
   try {
@@ -59,14 +65,14 @@ export async function POST(request: Request) {
       to: parties.doctor.phone,
       from,
       url: twimlUrl("doctor"),
-      statusCallback: withSession("/api/doctor/call/status"),
+      statusCallback: withState("/api/doctor/call/status"),
       statusCallbackEvent: ["completed"],
     });
     await client.calls.create({
       to: parties.patient.phone,
       from,
       url: twimlUrl("patient"),
-      statusCallback: withSession("/api/doctor/call/status"),
+      statusCallback: withState("/api/doctor/call/status"),
       statusCallbackEvent: ["completed"],
     });
 

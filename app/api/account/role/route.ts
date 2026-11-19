@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getUserFromRequest, createUserClient } from "@/lib/serverAuth";
+import { enforceRateLimit, rateLimited } from "@/lib/rateLimit";
 import { destinationFor, inferRole, loadRoleFacts } from "@/lib/accountRole";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +24,8 @@ async function facts(request: Request) {
 export async function GET(request: Request) {
   const r = await facts(request);
   if (!r) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const limited = rateLimited(await enforceRateLimit(request, { name: "account-role", limit: 30, windowSec: 3600, userId: r.auth.user.id }));
+  if (limited) return limited;
   const { auth, f } = r;
   const role = inferRole(f);
   if ((role === "doctor" || role === "patient") && !f.stored) {
@@ -38,6 +41,8 @@ const body = z.object({ role: z.enum(["patient", "doctor"]) });
 export async function POST(request: Request) {
   const r = await facts(request);
   if (!r) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const limited = rateLimited(await enforceRateLimit(request, { name: "account-role", limit: 30, windowSec: 3600, userId: r.auth.user.id }));
+  if (limited) return limited;
   const { auth, f } = r;
   const parsed = body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Choose patient or doctor." }, { status: 400 });

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
-import { createAnonAuthClient } from "@/lib/serverAuth";
+import { getUserFromRequest } from "@/lib/serverAuth";
 import { getBankDetails, hasBankDetails } from "@/lib/payments";
 
-// Public: the bank account patients transfer into (Bank Transfer is the only method).
-export async function GET() {
-  const bank = await getBankDetails(createAnonAuthClient());
+// Signed-in patients only. The account number is not a public directory field.
+export async function GET(request: Request) {
+  const auth = await getUserFromRequest(request);
+  if (!auth) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  const bank = await getBankDetails(auth.db);
   return NextResponse.json({ bank, configured: hasBankDetails(bank) });
 }

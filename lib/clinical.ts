@@ -59,12 +59,9 @@ export interface DoctorSearchFilters {
 export async function searchDoctors(
   db: SupabaseClient,filters: DoctorSearchFilters): Promise<DoctorWithPresence[]> {
   const admin = db;
-  let query = admin
-    .from("doctors")
-    .select("*")
-    .eq("is_active", true)
-    .eq("pmdc_verified", true)
-    .eq("registration_status", "verified");
+  let query = admin.from("public_doctors").select(
+    "id, full_name, specialization, sub_specialization, qualifications, experience_years, clinic_name, city, country, consultation_fee_pkr, accepts_online, accepts_walk_in, bio, avatar_url, profile_photo_url, pmdc_number, languages, rating, pmdc_verified, accepting_new_patients, last_seen_at, manual_status_override, override_expires_at, availability_status, is_online"
+  );
   if (filters.specialization) query = query.eq("specialization", filters.specialization);
   if (filters.city) query = query.eq("city", filters.city);
   const { data, error } = await query.order("rating", { ascending: false }).limit(30);

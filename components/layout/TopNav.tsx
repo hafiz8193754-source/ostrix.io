@@ -17,10 +17,12 @@ export function TopNav({ onToggleSidebar, accessToken }: TopNavProps) {
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="rounded-md p-1.5 text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary md:hidden"
-          aria-label="Toggle sidebar"
+          className="inline-flex h-11 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-text-primary transition-colors hover:bg-bg-elevated md:hidden"
+          aria-label="Open chat history"
+          aria-controls="chat-history"
         >
-          <Menu className="h-4 w-4" />
+          <Menu className="h-5 w-5" />
+          History
         </button>
         <OstrixLogo size="sm" withWordmark />
       </div>

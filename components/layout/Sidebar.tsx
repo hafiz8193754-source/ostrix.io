@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
 import { Plus, MoreVertical, Pencil, Trash2, Check, X, Stethoscope, Settings as SettingsIcon, ShieldCheck } from "lucide-react";
 
 import { OstrixLogo } from "@/components/brand/OstrixLogo";
@@ -25,6 +24,7 @@ interface SidebarProps {
   onDeleteSession: (id: string) => void;
   onClearHistory?: () => void;
   onOpenSettings: () => void;
+  onClose: () => void;
 }
 
 function initials(name: string) {
@@ -67,6 +67,7 @@ export function Sidebar({
   onDeleteSession,
   onClearHistory,
   onOpenSettings,
+  onClose,
 }: SidebarProps) {
   // Only platform admins get a 200 from the summary endpoint; everyone else
   // never sees the Admin link (the API stays the real gate).
@@ -83,6 +84,14 @@ export function Sidebar({
       cancelled = true;
     };
   }, [userEmail]);
+  const [isPhone, setIsPhone] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => setIsPhone(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
@@ -119,15 +128,37 @@ export function Sidebar({
   }
 
   return (
-    <motion.aside
-      animate={{ width: open ? 260 : 0 }}
-      initial={false}
-      transition={{ type: "tween", duration: 0.2, ease: "easeInOut" }}
-      className="flex h-full shrink-0 flex-col overflow-hidden border-r border-border bg-bg-surface"
+    <>
+    {open && (
+      <button
+        type="button"
+        className="fixed inset-0 z-30 bg-black/40 md:hidden"
+        aria-label="Close chat history"
+        onClick={onClose}
+      />
+    )}
+    <aside
+      id="chat-history"
+      aria-label="Chat history"
+      inert={isPhone && !open ? true : undefined}
+      className={cn(
+        "flex h-full w-[260px] shrink-0 flex-col overflow-hidden border-r border-border bg-bg-surface",
+        "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:transition-transform max-md:duration-200 max-md:motion-reduce:transition-none",
+        "md:static md:z-auto md:translate-x-0",
+        open ? "translate-x-0" : "max-md:-translate-x-full"
+      )}
     >
       <div className="flex w-[260px] flex-col gap-3 p-3">
-        <div className="flex items-center gap-2 px-1">
+        <div className="flex items-center justify-between gap-2 px-1">
           <OstrixLogo size="sm" />
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md text-text-secondary hover:bg-bg-elevated hover:text-text-primary md:hidden"
+            aria-label="Close chat history"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
         <Button onClick={onNewChat} className="w-full justify-center">
           <Plus className="h-4 w-4" /> New visit
@@ -313,6 +344,7 @@ export function Sidebar({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </motion.aside>
+    </aside>
+    </>
   );
 }

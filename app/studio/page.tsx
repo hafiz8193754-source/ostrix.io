@@ -22,24 +22,16 @@ export default function Studio() {
   const [doctorResetKey, setDoctorResetKey] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Mobile drawer starts closed. From 768px up the column is always in the
+  // layout, so this flag only controls the phone drawer.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const sidebarInitialized = useRef(false);
 
-  useEffect(() => {
-    function update() {
-      const next = window.innerWidth >= 1200;
-      if (!sidebarInitialized.current) {
-        sidebarInitialized.current = true;
-        setSidebarOpen(next);
-      }
-    }
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
+  function closeMobileHistory() {
+    if (window.matchMedia("(max-width: 767px)").matches) setSidebarOpen(false);
+  }
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -119,12 +111,14 @@ export default function Studio() {
     setDoctorLive(true);
     setDoctorResetKey((k) => k + 1);
     setActiveSessionId(null);
+    closeMobileHistory();
   }
 
   async function selectSession(id: string) {
     if (!session) return;
     setActiveSessionId(id);
     setDoctorLive(false);
+    closeMobileHistory();
     const res = await fetch(`/api/sessions/${id}/messages`, { headers: { authorization: `Bearer ${session.access_token}` } });
     if (!res.ok) return;
     const data = await res.json();
@@ -182,6 +176,7 @@ export default function Studio() {
           onDeleteSession={deleteSessionHandler}
           onClearHistory={clearHistoryHandler}
           onOpenSettings={() => setSettingsOpen(true)}
+          onClose={() => setSidebarOpen(false)}
         />
         <main className="flex min-w-0 flex-1 flex-col">
           {doctorLive ? (
